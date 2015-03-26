@@ -50,7 +50,7 @@ class SalesforceDb extends BaseNoSqlDbService
     //*************************************************************************
 
     /**
-     * @var \SalesforceDB
+     * @var SalesforceDB
      */
     protected $dbConn = null;
     /**
@@ -353,7 +353,7 @@ class SalesforceDb extends BaseNoSqlDbService
     protected function _getSoapLoginResult()
     {
         //@todo use client provided Salesforce wsdl for the different versions
-        $_wsdl = Platform::getLibraryTemplatePath( '/salesforce/salesforce.enterprise.wsdl.xml' );
+        $_wsdl = __DIR__.'/../config/enterprise.wsdl.xml';
 
         $_builder = new SoapClient\ClientBuilder( $_wsdl, $this->_username, $this->_password, $this->_securityToken );
         $_soapClient = $_builder->build();
