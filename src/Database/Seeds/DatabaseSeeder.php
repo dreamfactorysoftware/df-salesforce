@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Rave\SalesforceDb\Database\Seeds;
+namespace DreamFactory\Rave\Salesforce\Database\Seeds;
 
 use Illuminate\Database\Seeder;
 use DreamFactory\Rave\Models\ServiceType;
