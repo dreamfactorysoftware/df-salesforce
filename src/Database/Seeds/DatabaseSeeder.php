@@ -17,19 +17,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Salesforce\Database\Seeds;
+namespace DreamFactory\Core\Salesforce\Database\Seeds;
 
-use DreamFactory\Rave\Database\Seeds\BaseModelSeeder;
+use DreamFactory\Core\Database\Seeds\BaseModelSeeder;
 
 class DatabaseSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Rave\\Models\\ServiceType';
+    protected $modelClass = 'DreamFactory\\Core\\Models\\ServiceType';
 
     protected $records = [
         [
             'name'           => 'salesforce_db',
-            'class_name'     => 'DreamFactory\\Rave\\Salesforce\\Services\\SalesforceDb',
-            'config_handler' => 'DreamFactory\\Rave\\Salesforce\\Models\\SalesforceConfig',
+            'class_name'     => 'DreamFactory\\Core\\Salesforce\\Services\\SalesforceDb',
+            'config_handler' => 'DreamFactory\\Core\\Salesforce\\Models\\SalesforceConfig',
             'label'          => 'SalesforceDB',
             'description'    => 'Database service for Salesforce connections.',
             'group'          => 'Databases',

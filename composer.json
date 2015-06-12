@@ -1,10 +1,10 @@
 {
-  "name": "dreamfactory/rave-salesforce",
-  "description": "The DreamFactory RAVE(tm) Salesforce Service.",
+  "name": "dreamfactory/df-salesforce",
+  "description": "The DreamFactory(tm) Salesforce Service.",
   "keywords": [
     "dreamfactory",
     "dsp",
-    "rave",
+    "rest",
     "salesforce",
     "database",
     "db"
@@ -27,28 +27,20 @@
   ],
   "support": {
     "email": "support@dreamfactory.com",
-    "issues": "https://github.com/dreamfactorysoftware/rave/issues",
-    "wiki": "https://github.com/dreamfactorysoftware/rave/wiki",
-    "source": "https://github.com/dreamfactorysoftware/rave"
+    "source": "https://github.com/dreamfactorysoftware/df-salesforce",
+    "issues": "https://github.com/dreamfactorysoftware/df-salesforce/issues",
+    "wiki": "https://wiki.dreamfactory.com"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "dreamfactory/rave": "dev-develop as dev-master",
+    "dreamfactory/df-core": "dev-develop as dev-master",
     "phpforce/soap-client": "*"
   },
   "autoload": {
     "psr-4": {
-      "DreamFactory\\Rave\\Salesforce\\": "src/"
+      "DreamFactory\\Core\\Salesforce\\": "src/"
     }
-  },
-  "scripts": {
-    "post-install-cmd": [
-    ],
-    "post-update-cmd": [
-    ],
-    "post-create-project-cmd": [
-    ]
   },
   "extra": {
     "branch-alias": {

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,18 +18,18 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Salesforce\Services;
+namespace DreamFactory\Core\Salesforce\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Exceptions\RestException;
-use DreamFactory\Rave\Services\BaseNoSqlDbService;
-use DreamFactory\Rave\Resources\BaseRestResource;
-use DreamFactory\Rave\Salesforce\Resources\Schema;
-use DreamFactory\Rave\Salesforce\Resources\Table;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Services\BaseNoSqlDbService;
+use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Salesforce\Resources\Schema;
+use DreamFactory\Core\Salesforce\Resources\Table;
 use Guzzle\Http\Client as GuzzleClient;
 use Phpforce\SoapClient as SoapClient;
 
@@ -84,12 +84,12 @@ class SalesforceDb extends BaseNoSqlDbService
     protected $resources = [
         Schema::RESOURCE_NAME          => [
             'name'       => Schema::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Salesforce\\Resources\\Schema',
+            'class_name' => 'DreamFactory\\Core\\Salesforce\\Resources\\Schema',
             'label'      => 'Schema',
         ],
         Table::RESOURCE_NAME           => [
             'name'       => Table::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Salesforce\\Resources\\Table',
+            'class_name' => 'DreamFactory\\Core\\Salesforce\\Resources\\Table',
             'label'      => 'Table',
         ],
     ];
@@ -211,7 +211,7 @@ class SalesforceDb extends BaseNoSqlDbService
             // If version 1.x, the resource could be a table
 //            if ($this->request->getApiVersion())
 //            {
-//                $resource = $this->instantiateResource( 'DreamFactory\\Rave\\SalesforceDb\\Resources\\Table', [ 'name' => $this->resource ] );
+//                $resource = $this->instantiateResource( 'DreamFactory\\Core\\SalesforceDb\\Resources\\Table', [ 'name' => $this->resource ] );
 //                $newPath = $this->resourceArray;
 //                array_shift( $newPath );
 //                $newPath = implode( '/', $newPath );
