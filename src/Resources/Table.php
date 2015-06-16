@@ -1,23 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm)
- *
- * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 namespace DreamFactory\Core\Salesforce\Resources;
 
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -71,130 +52,114 @@ class Table extends BaseDbTableResource
 
         $_names = $this->service->getSObjects();
 
-        if (empty($fields))
-        {
+        if (empty($fields)) {
             return ['resource' => $_names];
         }
 
-        $_extras = DbUtilities::getSchemaExtrasForTables( $this->service->getServiceId(), $_names, false, 'table,label,plural' );
+        $_extras =
+            DbUtilities::getSchemaExtrasForTables($this->service->getServiceId(), $_names, false, 'table,label,plural');
 
         $_tables = [];
-        foreach ( $_names as $name )
-        {
+        foreach ($_names as $name) {
             $label = '';
             $plural = '';
-            foreach ( $_extras as $each )
-            {
-                if ( 0 == strcasecmp( $name, ArrayUtils::get( $each, 'table', '' ) ) )
-                {
-                    $label = ArrayUtils::get( $each, 'label' );
-                    $plural = ArrayUtils::get( $each, 'plural' );
+            foreach ($_extras as $each) {
+                if (0 == strcasecmp($name, ArrayUtils::get($each, 'table', ''))) {
+                    $label = ArrayUtils::get($each, 'label');
+                    $plural = ArrayUtils::get($each, 'plural');
                     break;
                 }
             }
 
-            if ( empty( $label ) )
-            {
-                $label = Inflector::camelize( $name, ['_','.'], true );
+            if (empty($label)) {
+                $label = Inflector::camelize($name, ['_', '.'], true);
             }
 
-            if ( empty( $plural ) )
-            {
-                $plural = Inflector::pluralize( $label );
+            if (empty($plural)) {
+                $plural = Inflector::pluralize($label);
             }
 
             $_tables[] = ['name' => $name, 'label' => $label, 'plural' => $plural];
         }
 
-        return $this->makeResourceList($_tables, 'name', $fields, 'resource' );
+        return $this->makeResourceList($_tables, 'name', $fields, 'resource');
     }
 
     /**
      * {@inheritdoc}
      */
-    public function retrieveRecordsByFilter( $table, $filter = null, $params = array(), $extras = array() )
+    public function retrieveRecordsByFilter($table, $filter = null, $params = array(), $extras = array())
     {
-        $_fields = ArrayUtils::get( $extras, 'fields' );
-        $_idField = ArrayUtils::get( $extras, 'id_field' );
-        $fields = $this->_buildFieldList( $table, $_fields, $_idField );
+        $_fields = ArrayUtils::get($extras, 'fields');
+        $_idField = ArrayUtils::get($extras, 'id_field');
+        $fields = $this->_buildFieldList($table, $_fields, $_idField);
 
-        $_next = ArrayUtils::get( $extras, 'next' );
-        if ( !empty( $_next ) )
-        {
-            $_result = $this->service->callGuzzle( 'GET', 'query/' . $_next );
-        }
-        else
-        {
+        $_next = ArrayUtils::get($extras, 'next');
+        if (!empty($_next)) {
+            $_result = $this->service->callGuzzle('GET', 'query/' . $_next);
+        } else {
             // build query string
             $_query = 'SELECT ' . $fields . ' FROM ' . $table;
 
-            if ( !empty( $filter ) )
-            {
+            if (!empty($filter)) {
                 $_query .= ' WHERE ' . $filter;
             }
 
-            $_order = ArrayUtils::get( $extras, 'order' );
-            if ( !empty( $_order ) )
-            {
+            $_order = ArrayUtils::get($extras, 'order');
+            if (!empty($_order)) {
                 $_query .= ' ORDER BY ' . $_order;
             }
 
-            $_offset = intval( ArrayUtils::get( $extras, 'offset', 0 ) );
-            if ( $_offset > 0 )
-            {
+            $_offset = intval(ArrayUtils::get($extras, 'offset', 0));
+            if ($_offset > 0) {
                 $_query .= ' OFFSET ' . $_offset;
             }
 
-            $_limit = intval( ArrayUtils::get( $extras, 'limit', 0 ) );
-            if ( $_limit > 0 )
-            {
+            $_limit = intval(ArrayUtils::get($extras, 'limit', 0));
+            if ($_limit > 0) {
                 $_query .= ' LIMIT ' . $_limit;
             }
 
-            $_result = $this->service->callGuzzle( 'GET', 'query', array('q' => $_query) );
+            $_result = $this->service->callGuzzle('GET', 'query', array('q' => $_query));
         }
 
-        $_data = ArrayUtils::get( $_result, 'records', array() );
+        $_data = ArrayUtils::get($_result, 'records', array());
 
-        $_includeCount = ArrayUtils::getBool( $extras, 'include_count', false );
-        $_moreToken = ArrayUtils::get( $_result, 'nextRecordsUrl' );
-        if ( $_includeCount || $_moreToken )
-        {
+        $_includeCount = ArrayUtils::getBool($extras, 'include_count', false);
+        $_moreToken = ArrayUtils::get($_result, 'nextRecordsUrl');
+        if ($_includeCount || $_moreToken) {
             // count total records
-            $_data['meta']['count'] = intval( ArrayUtils::get( $_result, 'totalSize' ) );
-            if ( $_moreToken )
-            {
-                $_data['meta']['next'] = substr( $_moreToken, strrpos( $_moreToken, '/' ) + 1 );
+            $_data['meta']['count'] = intval(ArrayUtils::get($_result, 'totalSize'));
+            if ($_moreToken) {
+                $_data['meta']['next'] = substr($_moreToken, strrpos($_moreToken, '/') + 1);
             }
         }
 
         return $_data;
     }
 
-    protected function getFieldsInfo( $table )
+    protected function getFieldsInfo($table)
     {
-        $_result = $this->service->callGuzzle( 'GET', 'sobjects/' . $table . '/describe' );
-        $_result = ArrayUtils::get( $_result, 'fields' );
-        if ( empty( $_result ) )
-        {
+        $_result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $_result = ArrayUtils::get($_result, 'fields');
+        if (empty($_result)) {
             return array();
         }
 
         $_fields = array();
-        foreach ( $_result as $_field )
-        {
-            $_fields[] = ArrayUtils::get( $_field, 'name' );
+        foreach ($_result as $_field) {
+            $_fields[] = ArrayUtils::get($_field, 'name');
         }
 
         return $_result;
     }
 
-    protected function getIdsInfo( $table, $fields_info = null, &$requested_fields = null, $requested_types = null )
+    protected function getIdsInfo($table, $fields_info = null, &$requested_fields = null, $requested_types = null)
     {
         $requested_fields = static::DEFAULT_ID_FIELD; // can only be this
-        $requested_types = ArrayUtils::clean( $requested_types );
-        $_type = ArrayUtils::get( $requested_types, 0, 'string' );
-        $_type = ( empty( $_type ) ) ? 'string' : $_type;
+        $requested_types = ArrayUtils::clean($requested_types);
+        $_type = ArrayUtils::get($requested_types, 0, 'string');
+        $_type = (empty($_type)) ? 'string' : $_type;
 
         return array(array('name' => static::DEFAULT_ID_FIELD, 'type' => $_type, 'required' => false));
     }
@@ -205,27 +170,24 @@ class Table extends BaseDbTableResource
      *
      * @return array|string
      */
-    protected function _getAllFields( $table, $as_array = false )
+    protected function _getAllFields($table, $as_array = false)
     {
-        $_result = $this->service->callGuzzle( 'GET', 'sobjects/' . $table . '/describe' );
-        $_result = ArrayUtils::get( $_result, 'fields' );
-        if ( empty( $_result ) )
-        {
+        $_result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $_result = ArrayUtils::get($_result, 'fields');
+        if (empty($_result)) {
             return array();
         }
 
         $_fields = array();
-        foreach ( $_result as $_field )
-        {
-            $_fields[] = ArrayUtils::get( $_field, 'name' );
+        foreach ($_result as $_field) {
+            $_fields[] = ArrayUtils::get($_field, 'name');
         }
 
-        if ( $as_array )
-        {
+        if ($as_array) {
             return $_fields;
         }
 
-        return implode( ',', $_fields );
+        return implode(',', $_fields);
     }
 
     /**
@@ -235,41 +197,33 @@ class Table extends BaseDbTableResource
      *
      * @return array|null|string
      */
-    protected function _buildFieldList( $table, $fields = null, $id_field = null )
+    protected function _buildFieldList($table, $fields = null, $id_field = null)
     {
-        if ( empty( $id_field ) )
-        {
+        if (empty($id_field)) {
             $id_field = static::DEFAULT_ID_FIELD;
         }
 
-        if ( empty( $fields ) )
-        {
+        if (empty($fields)) {
             $fields = $id_field;
-        }
-        elseif ( '*' == $fields )
-        {
-            $fields = $this->_getAllFields( $table );
-        }
-        else
-        {
-            if ( is_array( $fields ) )
-            {
-                $fields = implode( ',', $fields );
+        } elseif ('*' == $fields) {
+            $fields = $this->_getAllFields($table);
+        } else {
+            if (is_array($fields)) {
+                $fields = implode(',', $fields);
             }
 
             // make sure the Id field is always returned
-            if ( false === array_search(
-                    strtolower( $id_field ),
+            if (false === array_search(
+                    strtolower($id_field),
                     array_map(
                         'trim',
-                        explode( ',', strtolower( $fields ) )
+                        explode(',', strtolower($fields))
                     )
                 )
-            )
-            {
-                $fields = array_map( 'trim', explode( ',', $fields ) );
+            ) {
+                $fields = array_map('trim', explode(',', $fields));
                 $fields[] = $id_field;
-                $fields = implode( ',', $fields );
+                $fields = implode(',', $fields);
             }
         }
 
@@ -279,69 +233,71 @@ class Table extends BaseDbTableResource
     /**
      * {@inheritdoc}
      */
-    protected function initTransaction( $handle = null )
+    protected function initTransaction($handle = null)
     {
 
-        return parent::initTransaction( $handle );
+        return parent::initTransaction($handle);
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function addToTransaction( $record = null, $id = null, $extras = null, $rollback = false, $continue = false, $single = false )
-    {
-        $_fields = ArrayUtils::get( $extras, 'fields' );
-        $_fieldsInfo = ArrayUtils::get( $extras, 'fields_info' );
-        $_ssFilters = ArrayUtils::get( $extras, 'ss_filters' );
-        $_updates = ArrayUtils::get( $extras, 'updates' );
-        $_idsInfo = ArrayUtils::get( $extras, 'ids_info' );
-        $_idFields = ArrayUtils::get( $extras, 'id_fields' );
-        $_needToIterate = ( $single || $continue || ( 1 < count( $_idsInfo ) ) );
-        $_requireMore = ArrayUtils::getBool( $extras, 'require_more' );
+    protected function addToTransaction(
+        $record = null,
+        $id = null,
+        $extras = null,
+        $rollback = false,
+        $continue = false,
+        $single = false
+    ){
+        $_fields = ArrayUtils::get($extras, 'fields');
+        $_fieldsInfo = ArrayUtils::get($extras, 'fields_info');
+        $_ssFilters = ArrayUtils::get($extras, 'ss_filters');
+        $_updates = ArrayUtils::get($extras, 'updates');
+        $_idsInfo = ArrayUtils::get($extras, 'ids_info');
+        $_idFields = ArrayUtils::get($extras, 'id_fields');
+        $_needToIterate = ($single || $continue || (1 < count($_idsInfo)));
+        $_requireMore = ArrayUtils::getBool($extras, 'require_more');
 
         $_client = $this->service->getGuzzleClient();
 
         $_out = array();
-        switch ( $this->getAction() )
-        {
+        switch ($this->getAction()) {
             case Verbs::POST:
-                $_parsed = $this->parseRecord( $record, $_fieldsInfo, $_ssFilters );
-                if ( empty( $_parsed ) )
-                {
-                    throw new BadRequestException( 'No valid fields were found in record.' );
+                $_parsed = $this->parseRecord($record, $_fieldsInfo, $_ssFilters);
+                if (empty($_parsed)) {
+                    throw new BadRequestException('No valid fields were found in record.');
                 }
 
-                $_native = json_encode( $_parsed );
+                $_native = json_encode($_parsed);
                 $_result =
-                    $this->service->callGuzzle( 'POST', 'sobjects/' . $this->_transactionTable . '/', null, $_native, $_client );
-                if ( !ArrayUtils::getBool( $_result, 'success', false ) )
-                {
-                    $_msg = json_encode( ArrayUtils::get( $_result, 'errors' ) );
-                    throw new InternalServerErrorException( "Record insert failed for table '$this->_transactionTable'.\n" .
-                                                            $_msg );
+                    $this->service->callGuzzle('POST', 'sobjects/' . $this->_transactionTable . '/', null, $_native,
+                        $_client);
+                if (!ArrayUtils::getBool($_result, 'success', false)) {
+                    $_msg = json_encode(ArrayUtils::get($_result, 'errors'));
+                    throw new InternalServerErrorException("Record insert failed for table '$this->_transactionTable'.\n" .
+                        $_msg);
                 }
 
-                $id = ArrayUtils::get( $_result, 'id' );
+                $id = ArrayUtils::get($_result, 'id');
 
                 // add via record, so batch processing can retrieve extras
-                return ( $_requireMore ) ? parent::addToTransaction( $id ) : array($_idFields => $id);
+                return ($_requireMore) ? parent::addToTransaction($id) : array($_idFields => $id);
 
             case Verbs::PUT:
             case Verbs::MERGE:
             case Verbs::PATCH:
-                if ( !empty( $_updates ) )
-                {
+                if (!empty($_updates)) {
                     $record = $_updates;
                 }
 
-                $_parsed = $this->parseRecord( $record, $_fieldsInfo, $_ssFilters, true );
-                if ( empty( $_parsed ) )
-                {
-                    throw new BadRequestException( 'No valid fields were found in record.' );
+                $_parsed = $this->parseRecord($record, $_fieldsInfo, $_ssFilters, true);
+                if (empty($_parsed)) {
+                    throw new BadRequestException('No valid fields were found in record.');
                 }
 
-                static::removeIds( $_parsed, $_idFields );
-                $_native = json_encode( $_parsed );
+                static::removeIds($_parsed, $_idFields);
+                $_native = json_encode($_parsed);
 
                 $_result = $this->service->callGuzzle(
                     'PATCH',
@@ -350,15 +306,14 @@ class Table extends BaseDbTableResource
                     $_native,
                     $_client
                 );
-                if ( $_result && !ArrayUtils::getBool( $_result, 'success', false ) )
-                {
-                    $msg = ArrayUtils::get( $_result, 'errors' );
-                    throw new InternalServerErrorException( "Record update failed for table '$this->_transactionTable'.\n" .
-                                                            $msg );
+                if ($_result && !ArrayUtils::getBool($_result, 'success', false)) {
+                    $msg = ArrayUtils::get($_result, 'errors');
+                    throw new InternalServerErrorException("Record update failed for table '$this->_transactionTable'.\n" .
+                        $msg);
                 }
 
                 // add via record, so batch processing can retrieve extras
-                return ( $_requireMore ) ? parent::addToTransaction( $id ) : array($_idFields => $id);
+                return ($_requireMore) ? parent::addToTransaction($id) : array($_idFields => $id);
 
             case Verbs::DELETE:
                 $_result = $this->service->callGuzzle(
@@ -368,32 +323,29 @@ class Table extends BaseDbTableResource
                     null,
                     $_client
                 );
-                if ( $_result && !ArrayUtils::getBool( $_result, 'success', false ) )
-                {
-                    $msg = ArrayUtils::get( $_result, 'errors' );
-                    throw new InternalServerErrorException( "Record delete failed for table '$this->_transactionTable'.\n" .
-                                                            $msg );
+                if ($_result && !ArrayUtils::getBool($_result, 'success', false)) {
+                    $msg = ArrayUtils::get($_result, 'errors');
+                    throw new InternalServerErrorException("Record delete failed for table '$this->_transactionTable'.\n" .
+                        $msg);
                 }
 
                 // add via record, so batch processing can retrieve extras
-                return ( $_requireMore ) ? parent::addToTransaction( $id ) : array($_idFields => $id);
+                return ($_requireMore) ? parent::addToTransaction($id) : array($_idFields => $id);
 
             case Verbs::GET:
-                if ( !$_needToIterate )
-                {
-                    return parent::addToTransaction( null, $id );
+                if (!$_needToIterate) {
+                    return parent::addToTransaction(null, $id);
                 }
 
-                $_fields = $this->_buildFieldList( $this->_transactionTable, $_fields, $_idFields );
+                $_fields = $this->_buildFieldList($this->_transactionTable, $_fields, $_idFields);
 
                 $_result = $this->service->callGuzzle(
                     'GET',
                     'sobjects/' . $this->_transactionTable . '/' . $id,
                     array('fields' => $_fields)
                 );
-                if ( empty( $_result ) )
-                {
-                    throw new NotFoundException( "Record with identifier '" . print_r( $id, true ) . "' not found." );
+                if (empty($_result)) {
+                    throw new NotFoundException("Record with identifier '" . print_r($id, true) . "' not found.");
                 }
 
                 $_out = $_result;
@@ -406,33 +358,29 @@ class Table extends BaseDbTableResource
     /**
      * {@inheritdoc}
      */
-    protected function commitTransaction( $extras = null )
+    protected function commitTransaction($extras = null)
     {
-        if ( empty( $this->_batchRecords ) && empty( $this->_batchIds ) )
-        {
-            if ( isset( $this->_transaction ) )
-            {
+        if (empty($this->_batchRecords) && empty($this->_batchIds)) {
+            if (isset($this->_transaction)) {
                 $this->_transaction->commit();
             }
 
             return null;
         }
 
-        $_fields = ArrayUtils::get( $extras, 'fields' );
-        $_idsInfo = ArrayUtils::get( $extras, 'ids_info' );
-        $_idFields = ArrayUtils::get( $extras, 'id_fields' );
+        $_fields = ArrayUtils::get($extras, 'fields');
+        $_idsInfo = ArrayUtils::get($extras, 'ids_info');
+        $_idFields = ArrayUtils::get($extras, 'id_fields');
 
         $_out = array();
         $_action = $this->getAction();
-        if ( !empty( $this->_batchRecords ) )
-        {
-            if ( 1 == count( $_idsInfo ) )
-            {
+        if (!empty($this->_batchRecords)) {
+            if (1 == count($_idsInfo)) {
                 // records are used to retrieve extras
                 // ids array are now more like records
-                $_fields = $this->_buildFieldList( $this->_transactionTable, $_fields, $_idFields );
+                $_fields = $this->_buildFieldList($this->_transactionTable, $_fields, $_idFields);
 
-                $_idList = "('" . implode( "','", $this->_batchRecords ) . "')";
+                $_idList = "('" . implode("','", $this->_batchRecords) . "')";
                 $_query =
                     'SELECT ' .
                     $_fields .
@@ -443,25 +391,19 @@ class Table extends BaseDbTableResource
                     ' IN ' .
                     $_idList;
 
-                $_result = $this->service->callGuzzle( 'GET', 'query', array('q' => $_query) );
+                $_result = $this->service->callGuzzle('GET', 'query', array('q' => $_query));
 
-                $_out = ArrayUtils::get( $_result, 'records', array() );
-                if ( empty( $_out ) )
-                {
-                    throw new NotFoundException( 'No records were found using the given identifiers.' );
+                $_out = ArrayUtils::get($_result, 'records', array());
+                if (empty($_out)) {
+                    throw new NotFoundException('No records were found using the given identifiers.');
                 }
-            }
-            else
-            {
-                $_out = $this->retrieveRecords( $this->_transactionTable, $this->_batchRecords, $extras );
+            } else {
+                $_out = $this->retrieveRecords($this->_transactionTable, $this->_batchRecords, $extras);
             }
 
             $this->_batchRecords = array();
-        }
-        elseif ( !empty( $this->_batchIds ) )
-        {
-            switch ( $_action )
-            {
+        } elseif (!empty($this->_batchIds)) {
+            switch ($_action) {
                 case Verbs::PUT:
                 case Verbs::MERGE:
                 case Verbs::PATCH:
@@ -471,9 +413,9 @@ class Table extends BaseDbTableResource
                     break;
 
                 case Verbs::GET:
-                    $_fields = $this->_buildFieldList( $this->_transactionTable, $_fields, $_idFields );
+                    $_fields = $this->_buildFieldList($this->_transactionTable, $_fields, $_idFields);
 
-                    $_idList = "('" . implode( "','", $this->_batchIds ) . "')";
+                    $_idList = "('" . implode("','", $this->_batchIds) . "')";
                     $_query =
                         'SELECT ' .
                         $_fields .
@@ -484,12 +426,11 @@ class Table extends BaseDbTableResource
                         ' IN ' .
                         $_idList;
 
-                    $_result = $this->service->callGuzzle( 'GET', 'query', array('q' => $_query) );
+                    $_result = $this->service->callGuzzle('GET', 'query', array('q' => $_query));
 
-                    $_out = ArrayUtils::get( $_result, 'records', array() );
-                    if ( empty( $_out ) )
-                    {
-                        throw new NotFoundException( 'No records were found using the given identifiers.' );
+                    $_out = ArrayUtils::get($_result, 'records', array());
+                    if (empty($_out)) {
+                        throw new NotFoundException('No records were found using the given identifiers.');
                     }
 
                     break;
@@ -498,8 +439,7 @@ class Table extends BaseDbTableResource
                     break;
             }
 
-            if ( empty( $_out ) )
-            {
+            if (empty($_out)) {
                 $_out = $this->_batchIds;
             }
 
@@ -514,10 +454,8 @@ class Table extends BaseDbTableResource
      */
     protected function rollbackTransaction()
     {
-        if ( !empty( $this->_rollbackRecords ) )
-        {
-            switch ( $this->getAction() )
-            {
+        if (!empty($this->_rollbackRecords)) {
+            switch ($this->getAction()) {
                 case Verbs::POST:
                     break;
 
