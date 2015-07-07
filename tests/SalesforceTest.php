@@ -36,7 +36,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
                 'name'        => static::SERVICE_NAME,
                 'label'       => 'Salesforce Database',
                 'description' => 'Salesforce database for testing',
-                'is_active'   => 1,
+                'is_active'   => true,
                 'type'        => 'salesforce_db',
                 'config'      => ['dsn' => env('SF_DSN'), 'options' => $options]
             ]
