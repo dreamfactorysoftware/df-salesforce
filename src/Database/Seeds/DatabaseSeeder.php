@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Salesforce\Database\Seeds;
 
 use DreamFactory\Core\Database\Seeds\BaseModelSeeder;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\ServiceType;
 use DreamFactory\Core\Salesforce\Models\SalesforceConfig;
 use DreamFactory\Core\Salesforce\Services\SalesforceDb;
@@ -17,7 +18,7 @@ class DatabaseSeeder extends BaseModelSeeder
             'config_handler' => SalesforceConfig::class,
             'label'          => 'SalesforceDB',
             'description'    => 'Database service for Salesforce connections.',
-            'group'          => 'Database',
+            'group'          => ServiceTypeGroups::DATABASE,
             'singleton'      => false,
         ]
     ];
