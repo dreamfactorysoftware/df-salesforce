@@ -17,7 +17,7 @@ class DatabaseSeeder extends BaseModelSeeder
             'config_handler' => SalesforceConfig::class,
             'label'          => 'SalesforceDB',
             'description'    => 'Database service for Salesforce connections.',
-            'group'          => 'Databases',
+            'group'          => 'Database',
             'singleton'      => false,
         ]
     ];

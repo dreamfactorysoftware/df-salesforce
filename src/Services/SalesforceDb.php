@@ -247,7 +247,7 @@ class SalesforceDb extends BaseNoSqlDbService
             }
         }
 
-        return ['resource' => $_resources];
+        return $this->cleanResources($_resources);
     }
 
     /**
