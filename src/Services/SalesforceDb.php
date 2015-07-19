@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -8,7 +9,6 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseNoSqlDbService;
-use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use Guzzle\Http\Client as GuzzleClient;
@@ -194,60 +194,52 @@ class SalesforceDb extends BaseNoSqlDbService
     }
 
     /**
-     * @return array
-     */
-    protected function getResources()
-    {
-        return $this->resources;
-    }
-
-    // REST service implementation
-
-    /**
      * {@inheritdoc}
      */
-    public function listResources($fields = null)
+    public function getResources($only_handlers = false)
     {
-        if (!$this->request->getParameterAsBool('as_access_components')) {
-            return parent::listResources($fields);
-        }
-
-        $_resources = [];
+        if (!$only_handlers) {
+            if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
+                $_resources = [];
 
 //        $refresh = $this->request->queryBool( 'refresh' );
 
-        $_name = Schema::RESOURCE_NAME . '/';
-        $_access = $this->getPermissions($_name);
-        if (!empty($_access)) {
-            $_resources[] = $_name;
-            $_resources[] = $_name . '*';
-        }
+                $_name = Schema::RESOURCE_NAME . '/';
+                $_access = $this->getPermissions($_name);
+                if (!empty($_access)) {
+                    $_resources[] = $_name;
+                    $_resources[] = $_name . '*';
+                }
 
-        $_result = $this->getSObjects(true);
-        foreach ($_result as $_name) {
-            $_name = Schema::RESOURCE_NAME . '/' . $_name;
-            $_access = $this->getPermissions($_name);
-            if (!empty($_access)) {
-                $_resources[] = $_name;
+                $_result = $this->getSObjects(true);
+                foreach ($_result as $_name) {
+                    $_name = Schema::RESOURCE_NAME . '/' . $_name;
+                    $_access = $this->getPermissions($_name);
+                    if (!empty($_access)) {
+                        $_resources[] = $_name;
+                    }
+                }
+
+                $_name = Table::RESOURCE_NAME . '/';
+                $_access = $this->getPermissions($_name);
+                if (!empty($_access)) {
+                    $_resources[] = $_name;
+                    $_resources[] = $_name . '*';
+                }
+
+                foreach ($_result as $_name) {
+                    $_name = Table::RESOURCE_NAME . '/' . $_name;
+                    $_access = $this->getPermissions($_name);
+                    if (!empty($_access)) {
+                        $_resources[] = $_name;
+                    }
+                }
+
+                return $_resources;
             }
         }
 
-        $_name = Table::RESOURCE_NAME . '/';
-        $_access = $this->getPermissions($_name);
-        if (!empty($_access)) {
-            $_resources[] = $_name;
-            $_resources[] = $_name . '*';
-        }
-
-        foreach ($_result as $_name) {
-            $_name = Table::RESOURCE_NAME . '/' . $_name;
-            $_access = $this->getPermissions($_name);
-            if (!empty($_access)) {
-                $_resources[] = $_name;
-            }
-        }
-
-        return $this->cleanResources($_resources);
+        return $this->resources;
     }
 
     /**
@@ -332,8 +324,13 @@ class SalesforceDb extends BaseNoSqlDbService
      * @throws RestException
      * @return array The JSON response as an array
      */
-    public function callGuzzle($method = 'GET', $uri = null, $parameters = array(), $body = null, $client = null)
-    {
+    public function callGuzzle(
+        $method = 'GET',
+        $uri = null,
+        $parameters = array(),
+        $body = null,
+        $client = null
+    ){
         $_options = array();
         try {
             if (!isset($client)) {
