@@ -196,10 +196,8 @@ class SalesforceDb extends BaseNoSqlDbService
     /**
      * {@inheritdoc}
      */
-    public function getResources($only_handlers = false)
+    public function getAccessList()
     {
-        if (!$only_handlers) {
-            if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
                 $_resources = [];
 
 //        $refresh = $this->request->queryBool( 'refresh' );
@@ -236,33 +234,7 @@ class SalesforceDb extends BaseNoSqlDbService
                 }
 
                 return $_resources;
-            }
-        }
-
-        return $this->resources;
     }
-
-    /**
-     * @return ServiceResponseInterface
-     */
-//    protected function respond()
-//    {
-//        if ( Verbs::POST === $this->getRequestedAction() )
-//        {
-//            switch ( $this->resource )
-//            {
-//                case Table::RESOURCE_NAME:
-//                case Schema::RESOURCE_NAME:
-//                    if ( !( $this->response instanceof ServiceResponseInterface ) )
-//                    {
-//                        $this->response = ResponseFactory::create( $this->response, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
-//                    }
-//                    break;
-//            }
-//        }
-//
-//        parent::respond();
-//    }
 
     protected function _getSoapLoginResult()
     {
