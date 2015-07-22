@@ -24,7 +24,7 @@ class SalesforceConfig extends BaseServiceConfigModel
 
     protected $casts = ['options' => 'array', 'driver_options' => 'array'];
 
-    public static function validateConfig($config)
+    public static function validateConfig($config, $create=true)
     {
         if ((null === ArrayUtils::get($config, 'dsn', null, true))) {
             if ((null === ArrayUtils::getDeep($config, 'options', 'db', null, true))) {
