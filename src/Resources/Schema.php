@@ -44,16 +44,16 @@ class Schema extends BaseDbSchemaResource
         }
 //        $refresh = $this->request->queryBool('refresh');
 
-        $_names = $this->service->getSObjects(true);
+        $names = $this->service->getSObjects(true);
 
-        $_extras =
-            DbUtilities::getSchemaExtrasForTables($this->service->getServiceId(), $_names, false, 'table,label,plural');
+        $extras =
+            DbUtilities::getSchemaExtrasForTables($this->service->getServiceId(), $names, false, 'table,label,plural');
 
-        $_tables = [];
-        foreach ($_names as $name) {
+        $tables = [];
+        foreach ($names as $name) {
             $label = '';
             $plural = '';
-            foreach ($_extras as $each) {
+            foreach ($extras as $each) {
                 if (0 == strcasecmp($name, ArrayUtils::get($each, 'table', ''))) {
                     $label = ArrayUtils::get($each, 'label');
                     $plural = ArrayUtils::get($each, 'plural');
@@ -69,10 +69,10 @@ class Schema extends BaseDbSchemaResource
                 $plural = Inflector::pluralize($label);
             }
 
-            $_tables[] = ['name' => $name, 'label' => $label, 'plural' => $plural];
+            $tables[] = ['name' => $name, 'label' => $label, 'plural' => $plural];
         }
 
-        return $_tables;
+        return $tables;
     }
 
     /**
@@ -80,18 +80,18 @@ class Schema extends BaseDbSchemaResource
      */
     public function describeTable($table, $refresh = true)
     {
-        $_name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+        $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
 
         try {
             $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
 
-            $_out = $result;
-            $_out['access'] = $this->getPermissions($_name);
+            $out = $result;
+            $out['access'] = $this->getPermissions($name);
 
-            return $_out;
-        } catch (\Exception $_ex) {
+            return $out;
+        } catch (\Exception $ex) {
             throw new InternalServerErrorException(
-                "Failed to get table properties for table '$_name'.\n{$_ex->getMessage()}"
+                "Failed to get table properties for table '$name'.\n{$ex->getMessage()}"
             );
         }
     }
@@ -101,12 +101,12 @@ class Schema extends BaseDbSchemaResource
      */
     public function describeField($table, $field, $refresh = false)
     {
-        $_result = $this->describeTable($table);
-        $_fields = ArrayUtils::get($_result, 'fields');
-        if (empty($_fields)) {
-            foreach ($_fields as $_item) {
-                if (ArrayUtils::get($_item, 'name') == $field) {
-                    return $_item;
+        $result = $this->describeTable($table);
+        $fields = ArrayUtils::get($result, 'fields');
+        if (empty($fields)) {
+            foreach ($fields as $item) {
+                if (ArrayUtils::get($item, 'name') == $field) {
+                    return $item;
                 }
             }
         }
