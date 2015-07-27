@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Services;
 
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -91,7 +92,7 @@ class SalesforceDb extends BaseNoSqlDbService
         parent::__construct($settings);
 
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
-//        Session::replaceLookups( $config, true );
+        Session::replaceLookups( $config, true );
 
         $this->username = ArrayUtils::get($config, 'username');
         $this->password = ArrayUtils::get($config, 'password');

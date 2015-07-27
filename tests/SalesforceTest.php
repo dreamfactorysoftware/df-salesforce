@@ -5,6 +5,7 @@ use DreamFactory\Core\Salesforce\Services\SalesforceDb;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Testing\TestServiceRequest;
+use DreamFactory\Core\Enums\ApiOptions;
 
 class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 {
@@ -137,7 +138,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 
     public function testGetRecordsByIds()
     {
-        $request = new TestServiceRequest(Verbs::GET, ['ids' => '1,2,3']);
+        $request = new TestServiceRequest(Verbs::GET, [ApiOptions::IDS => '1,2,3']);
         $rs = $this->service->handleRequest($request, Table::RESOURCE_NAME . '/' . static::TABLE_NAME);
         $data = $rs->getContent();
         $ids = implode(",", array_column($data[static::$wrapper], Table::DEFAULT_ID_FIELD));
@@ -204,7 +205,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
             $payload = '{' . static::$wrapper . ': ' . $payload . '}';
         }
 
-        $request = new TestServiceRequest(Verbs::POST, ['fields' => 'name,complete']);
+        $request = new TestServiceRequest(Verbs::POST, [ApiOptions::FIELDS => 'name,complete']);
         $request->setContent($payload, DataFormats::JSON);
         $rs = $this->service->handleRequest($request, Table::RESOURCE_NAME . '/' . static::TABLE_NAME);
         $data = $rs->getContent();
@@ -234,7 +235,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
         if (static::$wrapper) {
             $payload = '{' . static::$wrapper . ': ' . $payload . '}';
         }
-        $request = new TestServiceRequest(Verbs::POST, ['continue' => true]);
+        $request = new TestServiceRequest(Verbs::POST, [ApiOptions::CONTINUES => true]);
         $request->setContent($payload, DataFormats::JSON);
         $rs = $this->service->handleRequest($request, Table::RESOURCE_NAME . '/' . static::TABLE_NAME);
         $err = '{"error":{"context":{"error":[1],' . static::$wrapper . ':[{"id":8},"SQLSTATE[23000]: ';
@@ -261,7 +262,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
             $payload = '{' . static::$wrapper . ': ' . $payload . '}';
         }
 
-        $request = new TestServiceRequest(Verbs::POST, ['rollback' => true]);
+        $request = new TestServiceRequest(Verbs::POST, [ApiOptions::ROLLBACK => true]);
         $request->setContent($payload, DataFormats::JSON);
         $rs = $this->service->handleRequest($request, Table::RESOURCE_NAME . '/' . static::TABLE_NAME);
         $err =
@@ -540,7 +541,7 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 
     public function testDeleteRecordByIds()
     {
-        $request = new TestServiceRequest(Verbs::DELETE, ['ids' => '2,3']);
+        $request = new TestServiceRequest(Verbs::DELETE, [ApiOptions::IDS => '2,3']);
         $rs = $this->service->handleRequest($request, Table::RESOURCE_NAME . '/' . static::TABLE_NAME . '/1');
 //        $this->assertEquals( '{"record":[{"id":2},{"id":3}]}', $rs->getContent() );
 

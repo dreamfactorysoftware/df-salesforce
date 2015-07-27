@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Resources;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
@@ -89,8 +90,8 @@ class Table extends BaseDbTableResource
      */
     public function retrieveRecordsByFilter($table, $filter = null, $params = array(), $extras = array())
     {
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idField = ArrayUtils::get($extras, 'id_field');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idField = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
         $fields = $this->buildFieldList($table, $fields, $idField);
 
         $next = ArrayUtils::get($extras, 'next');
@@ -104,17 +105,17 @@ class Table extends BaseDbTableResource
                 $query .= ' WHERE ' . $filter;
             }
 
-            $order = ArrayUtils::get($extras, 'order');
+            $order = ArrayUtils::get($extras, ApiOptions::ORDER);
             if (!empty($order)) {
                 $query .= ' ORDER BY ' . $order;
             }
 
-            $offset = intval(ArrayUtils::get($extras, 'offset', 0));
+            $offset = intval(ArrayUtils::get($extras, ApiOptions::OFFSET, 0));
             if ($offset > 0) {
                 $query .= ' OFFSET ' . $offset;
             }
 
-            $limit = intval(ArrayUtils::get($extras, 'limit', 0));
+            $limit = intval(ArrayUtils::get($extras, ApiOptions::LIMIT, 0));
             if ($limit > 0) {
                 $query .= ' LIMIT ' . $limit;
             }
@@ -124,7 +125,7 @@ class Table extends BaseDbTableResource
 
         $data = ArrayUtils::get($result, 'records', array());
 
-        $includeCount = ArrayUtils::getBool($extras, 'include_count', false);
+        $includeCount = ArrayUtils::getBool($extras, ApiOptions::INCLUDE_COUNT, false);
         $moreToken = ArrayUtils::get($result, 'nextRecordsUrl');
         if ($includeCount || $moreToken) {
             // count total records
@@ -140,7 +141,7 @@ class Table extends BaseDbTableResource
     protected function getFieldsInfo($table)
     {
         $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
-        $result = ArrayUtils::get($result, 'fields');
+        $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return array();
         }
@@ -172,7 +173,7 @@ class Table extends BaseDbTableResource
     protected function getAllFields($table, $as_array = false)
     {
         $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
-        $result = ArrayUtils::get($result, 'fields');
+        $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return array();
         }
@@ -204,7 +205,7 @@ class Table extends BaseDbTableResource
 
         if (empty($fields)) {
             $fields = $id_field;
-        } elseif ('*' == $fields) {
+        } elseif (ApiOptions::FIELDS_ALL == $fields) {
             $fields = $this->getAllFields($table);
         } else {
             if (is_array($fields)) {
@@ -249,7 +250,7 @@ class Table extends BaseDbTableResource
         $continue = false,
         $single = false
     ){
-        $fields = ArrayUtils::get($extras, 'fields');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $fieldsInfo = ArrayUtils::get($extras, 'fields_info');
         $ssFilters = ArrayUtils::get($extras, 'ss_filters');
         $updates = ArrayUtils::get($extras, 'updates');
@@ -367,7 +368,7 @@ class Table extends BaseDbTableResource
             return null;
         }
 
-        $fields = ArrayUtils::get($extras, 'fields');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idsInfo = ArrayUtils::get($extras, 'ids_info');
         $idFields = ArrayUtils::get($extras, 'id_fields');
 
