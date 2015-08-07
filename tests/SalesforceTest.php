@@ -339,8 +339,8 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
@@ -396,8 +396,8 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
@@ -422,8 +422,8 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
@@ -459,8 +459,8 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
@@ -488,8 +488,8 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
@@ -572,15 +572,15 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 //    {
 //        DB::table( "services" )->insert(
 //            array(
-//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "mongo_db" ],
-//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "mongo_db" ]
+//                [ "name" => "db2", "label" => "Database 2", "description" => "Local Database 2", "is_active" => 1, "type" => "salesforce_db" ],
+//                [ "name" => "db3", "label" => "Database 3", "description" => "Local Database 3", "is_active" => 1, "type" => "salesforce_db" ]
 //            )
 //        );
 //
 //        $payload = '[{"id":2},{"id":3}]';
 //
 //        $rs = $this->callWithPayload( Verbs::DELETE, $this->buildPath( '_table/todo?fields=name,type'), $payload );
-//        $this->assertEquals( '{"record":[{"name":"db2","type":"mongo_db"},{"name":"db3","type":"mongo_db"}]}', $rs->getContent() );
+//        $this->assertEquals( '{"record":[{"name":"db2","type":"salesforce_db"},{"name":"db3","type":"salesforce_db"}]}', $rs->getContent() );
 //    }
 //
     public function testDropTable()
