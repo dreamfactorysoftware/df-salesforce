@@ -37,42 +37,9 @@ class Schema extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
-    public function getResources($only_handlers = false)
+    public function listResources($schema = null, $refresh = false)
     {
-        if ($only_handlers) {
-            return [];
-        }
-//        $refresh = $this->request->queryBool('refresh');
-
-        $names = $this->service->getSObjects(true);
-
-        $extras =
-            DbUtilities::getSchemaExtrasForTables($this->service->getServiceId(), $names, false, 'table,label,plural');
-
-        $tables = [];
-        foreach ($names as $name) {
-            $label = '';
-            $plural = '';
-            foreach ($extras as $each) {
-                if (0 == strcasecmp($name, ArrayUtils::get($each, 'table', ''))) {
-                    $label = ArrayUtils::get($each, 'label');
-                    $plural = ArrayUtils::get($each, 'plural');
-                    break;
-                }
-            }
-
-            if (empty($label)) {
-                $label = Inflector::camelize($name, ['_', '.'], true);
-            }
-
-            if (empty($plural)) {
-                $plural = Inflector::pluralize($label);
-            }
-
-            $tables[] = ['name' => $name, 'label' => $label, 'plural' => $plural];
-        }
-
-        return $tables;
+        return $this->service->getSObjects();
     }
 
     /**
