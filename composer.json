@@ -31,10 +31,8 @@
     "issues": "https://github.com/dreamfactorysoftware/df-salesforce/issues",
     "wiki": "https://wiki.dreamfactory.com"
   },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "require": {
-    "dreamfactory/df-core": "dev-develop as dev-master",
+    "dreamfactory/df-core": "~0.0.2",
     "phpforce/soap-client": "*"
   },
   "autoload": {
