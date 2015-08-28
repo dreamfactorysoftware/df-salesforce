@@ -2,13 +2,10 @@
 namespace DreamFactory\Core\Salesforce\Resources;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseDbSchemaResource;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Salesforce\Services\SalesforceDb;
 
 class Schema extends BaseDbSchemaResource
@@ -32,14 +29,6 @@ class Schema extends BaseDbSchemaResource
     public function getService()
     {
         return $this->service;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function listResources($schema = null, $refresh = false)
-    {
-        return $this->service->getSObjects();
     }
 
     /**
