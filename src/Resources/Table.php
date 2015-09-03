@@ -4,12 +4,10 @@ namespace DreamFactory\Core\Salesforce\Resources;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseDbTableResource;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Salesforce\Services\SalesforceDb;
 
 class Table extends BaseDbTableResource
@@ -42,14 +40,6 @@ class Table extends BaseDbTableResource
     public function getService()
     {
         return $this->service;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function listResources($schema = null, $refresh = false)
-    {
-        return $this->service->getSObjects();
     }
 
     /**
