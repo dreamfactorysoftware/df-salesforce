@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Resources;
 
+use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -45,7 +46,7 @@ class Table extends BaseDbTableResource
     /**
      * {@inheritdoc}
      */
-    public function retrieveRecordsByFilter($table, $filter = null, $params = array(), $extras = array())
+    public function retrieveRecordsByFilter($table, $filter = null, $params = [], $extras = [])
     {
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idField = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -77,10 +78,10 @@ class Table extends BaseDbTableResource
                 $query .= ' LIMIT ' . $limit;
             }
 
-            $result = $this->service->callGuzzle('GET', 'query', array('q' => $query));
+            $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
         }
 
-        $data = ArrayUtils::get($result, 'records', array());
+        $data = ArrayUtils::get($result, 'records', []);
 
         $includeCount = ArrayUtils::getBool($extras, ApiOptions::INCLUDE_COUNT, false);
         $moreToken = ArrayUtils::get($result, 'nextRecordsUrl');
@@ -100,12 +101,12 @@ class Table extends BaseDbTableResource
         $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
         $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
-            return array();
+            return [];
         }
 
-        $fields = array();
+        $fields = [];
         foreach ($result as $field) {
-            $fields[] = ArrayUtils::get($field, 'name');
+            $fields[] = new ColumnSchema($field);
         }
 
         return $result;
@@ -118,7 +119,7 @@ class Table extends BaseDbTableResource
         $type = ArrayUtils::get($requested_types, 0, 'string');
         $type = (empty($type)) ? 'string' : $type;
 
-        return array(array('name' => static::DEFAULT_ID_FIELD, 'type' => $type, 'required' => false));
+        return [new ColumnSchema(['name' => static::DEFAULT_ID_FIELD, 'type' => $type, 'required' => false])];
     }
 
     /**
@@ -132,10 +133,10 @@ class Table extends BaseDbTableResource
         $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
         $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
-            return array();
+            return [];
         }
 
-        $fields = array();
+        $fields = [];
         foreach ($result as $field) {
             $fields[] = ArrayUtils::get($field, 'name');
         }
@@ -190,15 +191,6 @@ class Table extends BaseDbTableResource
     /**
      * {@inheritdoc}
      */
-    protected function initTransaction($handle = null)
-    {
-
-        return parent::initTransaction($handle);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function addToTransaction(
         $record = null,
         $id = null,
@@ -208,20 +200,18 @@ class Table extends BaseDbTableResource
         $single = false
     ){
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
-        $fieldsInfo = ArrayUtils::get($extras, 'fields_info');
         $ssFilters = ArrayUtils::get($extras, 'ss_filters');
         $updates = ArrayUtils::get($extras, 'updates');
-        $idsInfo = ArrayUtils::get($extras, 'ids_info');
         $idFields = ArrayUtils::get($extras, 'id_fields');
-        $needToIterate = ($single || $continue || (1 < count($idsInfo)));
+        $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
         $requireMore = ArrayUtils::getBool($extras, 'require_more');
 
         $client = $this->service->getGuzzleClient();
 
-        $out = array();
+        $out = [];
         switch ($this->getAction()) {
             case Verbs::POST:
-                $parsed = $this->parseRecord($record, $fieldsInfo, $ssFilters);
+                $parsed = $this->parseRecord($record, $this->tableFieldsInfo, $ssFilters);
                 if (empty($parsed)) {
                     throw new BadRequestException('No valid fields were found in record.');
                 }
@@ -239,7 +229,7 @@ class Table extends BaseDbTableResource
                 $id = ArrayUtils::get($result, 'id');
 
                 // add via record, so batch processing can retrieve extras
-                return ($requireMore) ? parent::addToTransaction($id) : array($idFields => $id);
+                return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::PUT:
             case Verbs::MERGE:
@@ -248,7 +238,7 @@ class Table extends BaseDbTableResource
                     $record = $updates;
                 }
 
-                $parsed = $this->parseRecord($record, $fieldsInfo, $ssFilters, true);
+                $parsed = $this->parseRecord($record, $this->tableFieldsInfo, $ssFilters, true);
                 if (empty($parsed)) {
                     throw new BadRequestException('No valid fields were found in record.');
                 }
@@ -270,7 +260,7 @@ class Table extends BaseDbTableResource
                 }
 
                 // add via record, so batch processing can retrieve extras
-                return ($requireMore) ? parent::addToTransaction($id) : array($idFields => $id);
+                return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::DELETE:
                 $result = $this->service->callGuzzle(
@@ -287,7 +277,7 @@ class Table extends BaseDbTableResource
                 }
 
                 // add via record, so batch processing can retrieve extras
-                return ($requireMore) ? parent::addToTransaction($id) : array($idFields => $id);
+                return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::GET:
                 if (!$needToIterate) {
@@ -299,7 +289,7 @@ class Table extends BaseDbTableResource
                 $result = $this->service->callGuzzle(
                     'GET',
                     'sobjects/' . $this->transactionTable . '/' . $id,
-                    array('fields' => $fields)
+                    ['fields' => $fields]
                 );
                 if (empty($result)) {
                     throw new NotFoundException("Record with identifier '" . print_r($id, true) . "' not found.");
@@ -326,13 +316,12 @@ class Table extends BaseDbTableResource
         }
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
-        $idsInfo = ArrayUtils::get($extras, 'ids_info');
         $idFields = ArrayUtils::get($extras, 'id_fields');
 
-        $out = array();
+        $out = [];
         $action = $this->getAction();
         if (!empty($this->batchRecords)) {
-            if (1 == count($idsInfo)) {
+            if (1 == count($this->tableIdsInfo)) {
                 // records are used to retrieve extras
                 // ids array are now more like records
                 $fields = $this->buildFieldList($this->transactionTable, $fields, $idFields);
@@ -348,9 +337,9 @@ class Table extends BaseDbTableResource
                     ' IN ' .
                     $idList;
 
-                $result = $this->service->callGuzzle('GET', 'query', array('q' => $query));
+                $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
 
-                $out = ArrayUtils::get($result, 'records', array());
+                $out = ArrayUtils::get($result, 'records', []);
                 if (empty($out)) {
                     throw new NotFoundException('No records were found using the given identifiers.');
                 }
@@ -358,7 +347,7 @@ class Table extends BaseDbTableResource
                 $out = $this->retrieveRecords($this->transactionTable, $this->batchRecords, $extras);
             }
 
-            $this->batchRecords = array();
+            $this->batchRecords = [];
         } elseif (!empty($this->batchIds)) {
             switch ($action) {
                 case Verbs::PUT:
@@ -383,9 +372,9 @@ class Table extends BaseDbTableResource
                         ' IN ' .
                         $idList;
 
-                    $result = $this->service->callGuzzle('GET', 'query', array('q' => $query));
+                    $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
 
-                    $out = ArrayUtils::get($result, 'records', array());
+                    $out = ArrayUtils::get($result, 'records', []);
                     if (empty($out)) {
                         throw new NotFoundException('No records were found using the given identifiers.');
                     }
@@ -400,7 +389,7 @@ class Table extends BaseDbTableResource
                 $out = $this->batchIds;
             }
 
-            $this->batchIds = array();
+            $this->batchIds = [];
         }
 
         return $out;
@@ -426,7 +415,7 @@ class Table extends BaseDbTableResource
                     break;
             }
 
-            $this->rollbackRecords = array();
+            $this->rollbackRecords = [];
         }
 
         return true;
