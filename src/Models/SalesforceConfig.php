@@ -34,4 +34,26 @@ class SalesforceConfig extends BaseServiceConfigModel
 
         return true;
     }
+
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
+    {
+        parent::prepareConfigSchemaField($schema);
+
+        switch ($schema['name']) {
+            case 'dsn':
+                $schema['label'] = 'DSN';
+                $schema['description'] =
+                    'The Data Source Name, or DSN, contains the information required to connect to the database.';
+                break;
+            case 'options':
+                $schema['description'] = 'An array of options for the connection.';
+                break;
+            case 'driver_options':
+                $schema['description'] = 'An array of options for the driver.';
+                break;
+        }
+    }
 }
