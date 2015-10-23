@@ -20,16 +20,16 @@ class SalesforceConfig extends BaseServiceConfigModel
 {
     protected $table = 'salesforce_db_config';
 
-    protected $fillable = ['service_id', 'dsn', 'options', 'driver_options'];
+    protected $fillable = ['service_id', 'username', 'password', 'security_token'];
 
-    protected $casts = ['options' => 'array', 'driver_options' => 'array'];
+    protected $encrypted = ['password', 'security_token'];
 
-    public static function validateConfig($config, $create=true)
+    public static function validateConfig($config, $create = true)
     {
-        if ((null === ArrayUtils::get($config, 'dsn', null, true))) {
-            if ((null === ArrayUtils::getDeep($config, 'options', 'db', null, true))) {
-                throw new BadRequestException('Database name must be included in the \'dsn\' or as an \'option\' attribute.');
-            }
+        if (null === ArrayUtils::get($config, 'username', null, true) ||
+            null === ArrayUtils::get($config, 'password', null, true)
+        ) {
+            throw new BadRequestException('Both Username and Password are required');
         }
 
         return true;
@@ -43,16 +43,17 @@ class SalesforceConfig extends BaseServiceConfigModel
         parent::prepareConfigSchemaField($schema);
 
         switch ($schema['name']) {
-            case 'dsn':
-                $schema['label'] = 'DSN';
-                $schema['description'] =
-                    'The Data Source Name, or DSN, contains the information required to connect to the database.';
+            case 'username':
+                $schema['label'] = 'Username';
+                $schema['description'] = 'Username required to connect to Salesforce database.';
                 break;
-            case 'options':
-                $schema['description'] = 'An array of options for the connection.';
+            case 'password':
+                $schema['label'] = 'Password';
+                $schema['description'] = 'Password required to connect to Salesforce database.';
                 break;
-            case 'driver_options':
-                $schema['description'] = 'An array of options for the driver.';
+            case 'security_token':
+                $schema['label'] = 'Security Token';
+                $schema['description'] = 'Security token for your Salesforce account.';
                 break;
         }
     }

@@ -102,7 +102,7 @@ class SalesforceDb extends BaseNoSqlDbService
         parent::__construct($settings);
 
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
-        Session::replaceLookups( $config, true );
+        Session::replaceLookups($config, true);
 
         $this->username = ArrayUtils::get($config, 'username');
         $this->password = ArrayUtils::get($config, 'password');
@@ -120,7 +120,7 @@ class SalesforceDb extends BaseNoSqlDbService
             $this->version = $version;
         }
 
-//        $this->sessionCache = Pii::getState( 'service.' . $this->getApiName() . '.cache', array() );
+        $this->sessionCache = [];
 //
 //        $this->fieldCache = array();
     }
@@ -195,48 +195,48 @@ class SalesforceDb extends BaseNoSqlDbService
      */
     public function getAccessList()
     {
-                $resources = [];
+        $resources = [];
 
 //        $refresh = $this->request->queryBool( 'refresh' );
 
-                $name = Schema::RESOURCE_NAME . '/';
-                $access = $this->getPermissions($name);
-                if (!empty($access)) {
-                    $resources[] = $name;
-                    $resources[] = $name . '*';
-                }
+        $name = Schema::RESOURCE_NAME . '/';
+        $access = $this->getPermissions($name);
+        if (!empty($access)) {
+            $resources[] = $name;
+            $resources[] = $name . '*';
+        }
 
-                $result = $this->getSObjects(true);
-                foreach ($result as $name) {
-                    $name = Schema::RESOURCE_NAME . '/' . $name;
-                    $access = $this->getPermissions($name);
-                    if (!empty($access)) {
-                        $resources[] = $name;
-                    }
-                }
+        $result = $this->getSObjects(true);
+        foreach ($result as $name) {
+            $name = Schema::RESOURCE_NAME . '/' . $name;
+            $access = $this->getPermissions($name);
+            if (!empty($access)) {
+                $resources[] = $name;
+            }
+        }
 
-                $name = Table::RESOURCE_NAME . '/';
-                $access = $this->getPermissions($name);
-                if (!empty($access)) {
-                    $resources[] = $name;
-                    $resources[] = $name . '*';
-                }
+        $name = Table::RESOURCE_NAME . '/';
+        $access = $this->getPermissions($name);
+        if (!empty($access)) {
+            $resources[] = $name;
+            $resources[] = $name . '*';
+        }
 
-                foreach ($result as $name) {
-                    $name = Table::RESOURCE_NAME . '/' . $name;
-                    $access = $this->getPermissions($name);
-                    if (!empty($access)) {
-                        $resources[] = $name;
-                    }
-                }
+        foreach ($result as $name) {
+            $name = Table::RESOURCE_NAME . '/' . $name;
+            $access = $this->getPermissions($name);
+            if (!empty($access)) {
+                $resources[] = $name;
+            }
+        }
 
-                return $resources;
+        return $resources;
     }
 
     protected function getSoapLoginResult()
     {
         //@todo use client provided Salesforce wsdl for the different versions
-        $wsdl = __DIR__ . '/../config/enterprise.wsdl.xml';
+        $wsdl = __DIR__ . '/../../config/enterprise.wsdl.xml';
 
         $builder = new SoapClient\ClientBuilder($wsdl, $this->username, $this->password, $this->securityToken);
         $soapClient = $builder->build();
