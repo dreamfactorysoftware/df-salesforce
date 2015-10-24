@@ -29,7 +29,7 @@ class Table extends BaseDbTableResource
     /**
      * @var null|SalesforceDb
      */
-    protected $service = null;
+    protected $parent = null;
 
     //*************************************************************************
     //	Methods
@@ -40,7 +40,7 @@ class Table extends BaseDbTableResource
      */
     public function getService()
     {
-        return $this->service;
+        return $this->parent;
     }
 
     /**
@@ -54,7 +54,7 @@ class Table extends BaseDbTableResource
 
         $next = ArrayUtils::get($extras, 'next');
         if (!empty($next)) {
-            $result = $this->service->callGuzzle('GET', 'query/' . $next);
+            $result = $this->parent->callGuzzle('GET', 'query/' . $next);
         } else {
             // build query string
             $query = 'SELECT ' . $fields . ' FROM ' . $table;
@@ -78,7 +78,7 @@ class Table extends BaseDbTableResource
                 $query .= ' LIMIT ' . $limit;
             }
 
-            $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
+            $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
         }
 
         $data = ArrayUtils::get($result, 'records', []);
@@ -98,7 +98,7 @@ class Table extends BaseDbTableResource
 
     protected function getFieldsInfo($table)
     {
-        $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
         $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
@@ -109,7 +109,7 @@ class Table extends BaseDbTableResource
             $fields[] = new ColumnSchema($field);
         }
 
-        return $result;
+        return $fields;
     }
 
     protected function getIdsInfo($table, $fields_info = null, &$requested_fields = null, $requested_types = null)
@@ -130,7 +130,7 @@ class Table extends BaseDbTableResource
      */
     protected function getAllFields($table, $as_array = false)
     {
-        $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
         $result = ArrayUtils::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
@@ -206,7 +206,7 @@ class Table extends BaseDbTableResource
         $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
         $requireMore = ArrayUtils::getBool($extras, 'require_more');
 
-        $client = $this->service->getGuzzleClient();
+        $client = $this->parent->getGuzzleClient();
 
         $out = [];
         switch ($this->getAction()) {
@@ -218,7 +218,7 @@ class Table extends BaseDbTableResource
 
                 $native = json_encode($parsed);
                 $result =
-                    $this->service->callGuzzle('POST', 'sobjects/' . $this->transactionTable . '/', null, $native,
+                    $this->parent->callGuzzle('POST', 'sobjects/' . $this->transactionTable . '/', null, $native,
                         $client);
                 if (!ArrayUtils::getBool($result, 'success', false)) {
                     $msg = json_encode(ArrayUtils::get($result, 'errors'));
@@ -246,7 +246,7 @@ class Table extends BaseDbTableResource
                 static::removeIds($parsed, $idFields);
                 $native = json_encode($parsed);
 
-                $result = $this->service->callGuzzle(
+                $result = $this->parent->callGuzzle(
                     'PATCH',
                     'sobjects/' . $this->transactionTable . '/' . $id,
                     null,
@@ -263,7 +263,7 @@ class Table extends BaseDbTableResource
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::DELETE:
-                $result = $this->service->callGuzzle(
+                $result = $this->parent->callGuzzle(
                     'DELETE',
                     'sobjects/' . $this->transactionTable . '/' . $id,
                     null,
@@ -286,7 +286,7 @@ class Table extends BaseDbTableResource
 
                 $fields = $this->buildFieldList($this->transactionTable, $fields, $idFields);
 
-                $result = $this->service->callGuzzle(
+                $result = $this->parent->callGuzzle(
                     'GET',
                     'sobjects/' . $this->transactionTable . '/' . $id,
                     ['fields' => $fields]
@@ -337,7 +337,7 @@ class Table extends BaseDbTableResource
                     ' IN ' .
                     $idList;
 
-                $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
+                $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
 
                 $out = ArrayUtils::get($result, 'records', []);
                 if (empty($out)) {
@@ -372,7 +372,7 @@ class Table extends BaseDbTableResource
                         ' IN ' .
                         $idList;
 
-                    $result = $this->service->callGuzzle('GET', 'query', ['q' => $query]);
+                    $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
 
                     $out = ArrayUtils::get($result, 'records', []);
                     if (empty($out)) {

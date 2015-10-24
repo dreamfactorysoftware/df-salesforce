@@ -17,7 +17,7 @@ class Schema extends BaseDbSchemaResource
     /**
      * @var null|SalesforceDb
      */
-    protected $service = null;
+    protected $parent = null;
 
     //*************************************************************************
     //	Methods
@@ -28,7 +28,7 @@ class Schema extends BaseDbSchemaResource
      */
     public function getService()
     {
-        return $this->service;
+        return $this->parent;
     }
 
     /**
@@ -39,7 +39,7 @@ class Schema extends BaseDbSchemaResource
         $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
 
         try {
-            $result = $this->service->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+            $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
 
             $out = $result;
             $out['access'] = $this->getPermissions($name);

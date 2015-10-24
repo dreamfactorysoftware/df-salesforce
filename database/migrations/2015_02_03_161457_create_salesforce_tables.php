@@ -18,9 +18,9 @@ class CreateSalesforceTables extends Migration
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('dsn')->default(0)->nullable();
-                $t->text('options')->nullable();
-                $t->text('driver_options')->nullable();
+                $t->string('username')->nullable();
+                $t->longText('password')->nullable();
+                $t->longText('security_token')->nullable();
             }
         );
     }
