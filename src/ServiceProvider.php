@@ -16,7 +16,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             $df->addType(
                 new ServiceType([
                     'name'           => 'salesforce_db',
-                    'label'          => 'SalesforceDB',
+                    'label'          => 'Salesforce',
                     'description'    => 'Database service for Salesforce connections.',
                     'group'          => ServiceTypeGroups::DATABASE,
                     'config_handler' => SalesforceConfig::class,
