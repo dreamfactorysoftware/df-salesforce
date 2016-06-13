@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Salesforce\Services;
 use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseNoSqlDbService;
@@ -101,12 +100,12 @@ class SalesforceDb extends BaseNoSqlDbService
     {
         parent::__construct($settings);
 
-        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
+        $config = (array)array_get($settings, 'config');
         Session::replaceLookups($config, true);
 
-        $this->username = ArrayUtils::get($config, 'username');
-        $this->password = ArrayUtils::get($config, 'password');
-        $this->securityToken = ArrayUtils::get($config, 'security_token');
+        $this->username = array_get($config, 'username');
+        $this->password = array_get($config, 'password');
+        $this->securityToken = array_get($config, 'security_token');
         if (empty($this->securityToken)) {
             $this->securityToken = ''; // gets appended to password
         }
@@ -115,7 +114,7 @@ class SalesforceDb extends BaseNoSqlDbService
             throw new \InvalidArgumentException('A Salesforce username and password are required for this service.');
         }
 
-        $version = ArrayUtils::get($config, 'version');
+        $version = array_get($config, 'version');
         if (!empty($version)) {
             $this->version = $version;
         }
@@ -141,11 +140,11 @@ class SalesforceDb extends BaseNoSqlDbService
     {
         $result = $this->callGuzzle('GET', 'sobjects/');
 
-        $tables = ArrayUtils::clean(ArrayUtils::get($result, 'sobjects'));
+        $tables = (array)array_get($result, 'sobjects');
         if ($list_only) {
             $out = array();
             foreach ($tables as $table) {
-                $out[] = ArrayUtils::get($table, 'name');
+                $out[] = array_get($table, 'name');
             }
 
             return $out;
@@ -252,11 +251,11 @@ class SalesforceDb extends BaseNoSqlDbService
 
     protected function getSessionId()
     {
-        $id = ArrayUtils::get($this->sessionCache, 'session_id');
+        $id = array_get($this->sessionCache, 'session_id');
         if (empty($id)) {
             $this->getSoapLoginResult();
 
-            $id = ArrayUtils::get($this->sessionCache, 'session_id');
+            $id = array_get($this->sessionCache, 'session_id');
             if (empty($id)) {
                 throw new InternalServerErrorException('Failed to get session id from Salesforce.');
             }
@@ -267,11 +266,11 @@ class SalesforceDb extends BaseNoSqlDbService
 
     protected function getServerInstance()
     {
-        $instance = ArrayUtils::get($this->sessionCache, 'server_instance');
+        $instance = array_get($this->sessionCache, 'server_instance');
         if (empty($instance)) {
             $this->getSoapLoginResult();
 
-            $instance = ArrayUtils::get($this->sessionCache, 'server_instance');
+            $instance = array_get($this->sessionCache, 'server_instance');
             if (empty($instance)) {
                 throw new InternalServerErrorException('Failed to get server instance from Salesforce.');
             }
@@ -342,9 +341,9 @@ class SalesforceDb extends BaseNoSqlDbService
                     $response = $ex->getResponse();
                     $status = $response->getStatusCode();
                     $error = $response->json();
-                    $error = ArrayUtils::get($error, 0, array());
-                    $message = ArrayUtils::get($error, 'message', $response->getMessage());
-                    $code = ArrayUtils::get($error, 'errorCode', 'ERROR');
+                    $error = array_get($error, 0, array());
+                    $message = array_get($error, 'message', $response->getMessage());
+                    $code = array_get($error, 'errorCode', 'ERROR');
                     throw new RestException($status, $code . ' ' . $message);
                 } catch (\Exception $ex) {
                     throw new InternalServerErrorException($ex->getMessage(), $ex->getCode() ?: null);
@@ -352,9 +351,9 @@ class SalesforceDb extends BaseNoSqlDbService
             }
 
             $error = $response->json();
-            $error = ArrayUtils::get($error, 0, array());
-            $message = ArrayUtils::get($error, 'message', $response->getMessage());
-            $code = ArrayUtils::get($error, 'errorCode', 'ERROR');
+            $error = array_get($error, 0, array());
+            $message = array_get($error, 'message', $response->getMessage());
+            $code = array_get($error, 'errorCode', 'ERROR');
             throw new RestException($status, $code . ' ' . $message);
         } catch (\Exception $ex) {
             throw new InternalServerErrorException($ex->getMessage(), $ex->getCode() ?: null);

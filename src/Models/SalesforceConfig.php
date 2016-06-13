@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Models;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use Illuminate\Database\Query\Builder;
@@ -26,9 +25,7 @@ class SalesforceConfig extends BaseServiceConfigModel
 
     public static function validateConfig($config, $create = true)
     {
-        if (null === ArrayUtils::get($config, 'username', null, true) ||
-            null === ArrayUtils::get($config, 'password', null, true)
-        ) {
+        if (empty(array_get($config, 'username')) || empty(array_get($config, 'password'))) {
             throw new BadRequestException('Both Username and Password are required');
         }
 
