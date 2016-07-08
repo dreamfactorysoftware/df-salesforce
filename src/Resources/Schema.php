@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Resources;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
@@ -36,7 +35,7 @@ class Schema extends BaseDbSchemaResource
      */
     public function describeTable($table, $refresh = true)
     {
-        $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+        $name = (is_array($table)) ? array_get($table, 'name') : $table;
 
         try {
             $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
@@ -58,10 +57,10 @@ class Schema extends BaseDbSchemaResource
     public function describeField($table, $field, $refresh = false)
     {
         $result = $this->describeTable($table);
-        $fields = ArrayUtils::get($result, 'fields');
+        $fields = array_get($result, 'fields');
         if (empty($fields)) {
             foreach ($fields as $item) {
-                if (ArrayUtils::get($item, 'name') == $field) {
+                if (array_get($item, 'name') == $field) {
                     return $item;
                 }
             }

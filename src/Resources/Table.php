@@ -3,15 +3,15 @@ namespace DreamFactory\Core\Salesforce\Resources;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Resources\BaseDbTableResource;
+use DreamFactory\Core\Resources\BaseNoSqlDbTableResource;
 use DreamFactory\Core\Salesforce\Services\SalesforceDb;
+use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Scalar;
 
-class Table extends BaseDbTableResource
+class Table extends BaseNoSqlDbTableResource
 {
     //*************************************************************************
     //	Constants
@@ -48,11 +48,11 @@ class Table extends BaseDbTableResource
      */
     public function retrieveRecordsByFilter($table, $filter = null, $params = [], $extras = [])
     {
-        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
-        $idField = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $fields = array_get($extras, ApiOptions::FIELDS);
+        $idField = array_get($extras, ApiOptions::ID_FIELD);
         $fields = $this->buildFieldList($table, $fields, $idField);
 
-        $next = ArrayUtils::get($extras, 'next');
+        $next = array_get($extras, 'next');
         if (!empty($next)) {
             $result = $this->parent->callGuzzle('GET', 'query/' . $next);
         } else {
@@ -63,17 +63,17 @@ class Table extends BaseDbTableResource
                 $query .= ' WHERE ' . $filter;
             }
 
-            $order = ArrayUtils::get($extras, ApiOptions::ORDER);
+            $order = array_get($extras, ApiOptions::ORDER);
             if (!empty($order)) {
                 $query .= ' ORDER BY ' . $order;
             }
 
-            $offset = intval(ArrayUtils::get($extras, ApiOptions::OFFSET, 0));
+            $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
             if ($offset > 0) {
                 $query .= ' OFFSET ' . $offset;
             }
 
-            $limit = intval(ArrayUtils::get($extras, ApiOptions::LIMIT, 0));
+            $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
             if ($limit > 0) {
                 $query .= ' LIMIT ' . $limit;
             }
@@ -81,13 +81,13 @@ class Table extends BaseDbTableResource
             $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
         }
 
-        $data = ArrayUtils::get($result, 'records', []);
+        $data = array_get($result, 'records', []);
 
-        $includeCount = ArrayUtils::getBool($extras, ApiOptions::INCLUDE_COUNT, false);
-        $moreToken = ArrayUtils::get($result, 'nextRecordsUrl');
+        $includeCount = Scalar::boolval(array_get($extras, ApiOptions::INCLUDE_COUNT, false));
+        $moreToken = array_get($result, 'nextRecordsUrl');
         if ($includeCount || $moreToken) {
             // count total records
-            $data['meta']['count'] = intval(ArrayUtils::get($result, 'totalSize'));
+            $data['meta']['count'] = intval(array_get($result, 'totalSize'));
             if ($moreToken) {
                 $data['meta']['next'] = substr($moreToken, strrpos($moreToken, '/') + 1);
             }
@@ -99,7 +99,7 @@ class Table extends BaseDbTableResource
     protected function getFieldsInfo($table)
     {
         $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
-        $result = ArrayUtils::get($result, ApiOptions::FIELDS);
+        $result = array_get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
         }
@@ -115,8 +115,8 @@ class Table extends BaseDbTableResource
     protected function getIdsInfo($table, $fields_info = null, &$requested_fields = null, $requested_types = null)
     {
         $requested_fields = static::DEFAULT_ID_FIELD; // can only be this
-        $requested_types = ArrayUtils::clean($requested_types);
-        $type = ArrayUtils::get($requested_types, 0, 'string');
+        $requested_types = (array)$requested_types;
+        $type = array_get($requested_types, 0, 'string');
         $type = (empty($type)) ? 'string' : $type;
 
         return [new ColumnSchema(['name' => static::DEFAULT_ID_FIELD, 'type' => $type, 'required' => false])];
@@ -131,14 +131,14 @@ class Table extends BaseDbTableResource
     protected function getAllFields($table, $as_array = false)
     {
         $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
-        $result = ArrayUtils::get($result, ApiOptions::FIELDS);
+        $result = array_get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
         }
 
         $fields = [];
         foreach ($result as $field) {
-            $fields[] = ArrayUtils::get($field, 'name');
+            $fields[] = array_get($field, 'name');
         }
 
         if ($as_array) {
@@ -199,12 +199,12 @@ class Table extends BaseDbTableResource
         $continue = false,
         $single = false
     ){
-        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
-        $ssFilters = ArrayUtils::get($extras, 'ss_filters');
-        $updates = ArrayUtils::get($extras, 'updates');
-        $idFields = ArrayUtils::get($extras, 'id_fields');
+        $fields = array_get($extras, ApiOptions::FIELDS);
+        $ssFilters = array_get($extras, 'ss_filters');
+        $updates = array_get($extras, 'updates');
+        $idFields = array_get($extras, 'id_fields');
         $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
-        $requireMore = ArrayUtils::getBool($extras, 'require_more');
+        $requireMore = Scalar::boolval(array_get($extras, 'require_more'));
 
         $client = $this->parent->getGuzzleClient();
 
@@ -220,13 +220,13 @@ class Table extends BaseDbTableResource
                 $result =
                     $this->parent->callGuzzle('POST', 'sobjects/' . $this->transactionTable . '/', null, $native,
                         $client);
-                if (!ArrayUtils::getBool($result, 'success', false)) {
-                    $msg = json_encode(ArrayUtils::get($result, 'errors'));
+                if (!Scalar::boolval(array_get($result, 'success', false))) {
+                    $msg = json_encode(array_get($result, 'errors'));
                     throw new InternalServerErrorException("Record insert failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
 
-                $id = ArrayUtils::get($result, 'id');
+                $id = array_get($result, 'id');
 
                 // add via record, so batch processing can retrieve extras
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
@@ -253,8 +253,8 @@ class Table extends BaseDbTableResource
                     $native,
                     $client
                 );
-                if ($result && !ArrayUtils::getBool($result, 'success', false)) {
-                    $msg = ArrayUtils::get($result, 'errors');
+                if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
+                    $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record update failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
@@ -270,8 +270,8 @@ class Table extends BaseDbTableResource
                     null,
                     $client
                 );
-                if ($result && !ArrayUtils::getBool($result, 'success', false)) {
-                    $msg = ArrayUtils::get($result, 'errors');
+                if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
+                    $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record delete failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
@@ -315,8 +315,8 @@ class Table extends BaseDbTableResource
             return null;
         }
 
-        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
-        $idFields = ArrayUtils::get($extras, 'id_fields');
+        $fields = array_get($extras, ApiOptions::FIELDS);
+        $idFields = array_get($extras, 'id_fields');
 
         $out = [];
         $action = $this->getAction();
@@ -339,7 +339,7 @@ class Table extends BaseDbTableResource
 
                 $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
 
-                $out = ArrayUtils::get($result, 'records', []);
+                $out = array_get($result, 'records', []);
                 if (empty($out)) {
                     throw new NotFoundException('No records were found using the given identifiers.');
                 }
@@ -374,7 +374,7 @@ class Table extends BaseDbTableResource
 
                     $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
 
-                    $out = ArrayUtils::get($result, 'records', []);
+                    $out = array_get($result, 'records', []);
                     if (empty($out)) {
                         throw new NotFoundException('No records were found using the given identifiers.');
                     }
