@@ -9,8 +9,8 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseNoSqlDbService;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
-use Guzzle\Http\Client as GuzzleClient;
-use Guzzle\Http\Exception\BadResponseException;
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Exception\BadResponseException;
 use Phpforce\SoapClient as SoapClient;
 
 /**
@@ -299,23 +299,18 @@ class SalesforceDb extends BaseNoSqlDbService
         $body = null,
         $client = null
     ){
-        $options = array();
         try {
             if (!isset($client)) {
                 $client = $this->getGuzzleClient();
             }
-            $request = $client->createRequest($method, $uri, null, $body, $options);
-            $request->setHeader('Authorization', 'Bearer ' . $this->getSessionId());
+            $options = ['query' => $parameters, 'headers' => ['Authorization' => 'Bearer ' . $this->getSessionId()]];
             if (!empty($body)) {
-                $request->setHeader('Content-Type', 'application/json');
+                $options['headers']['Content-Type'] = 'application/json';
+                $options['body'] = $body;
             }
-            if (!empty($parameters)) {
-                $request->getQuery()->merge($parameters);
-            }
+            $response = $client->request($method, $uri, $options);
 
-            $response = $request->send();
-
-            return $response->json();
+            return json_decode($response->getBody(), true);
         } catch (BadResponseException $ex) {
             $response = $ex->getResponse();
             $status = $response->getStatusCode();
@@ -324,25 +319,20 @@ class SalesforceDb extends BaseNoSqlDbService
                 $this->sessionCache = array();
                 // resend request
                 try {
-                    $client = $client->setBaseUrl($this->getBaseUrl());
-                    $request = $client->createRequest($method, $uri, null, $body, $options);
-                    $request->setHeader('Authorization', 'Bearer ' . $this->getSessionId());
+                    $options = ['query' => $parameters, 'headers' => ['Authorization' => 'Bearer ' . $this->getSessionId()]];
                     if (!empty($body)) {
-                        $request->setHeader('Content-Type', 'application/json');
+                        $options['headers']['Content-Type'] = 'application/json';
+                        $options['body'] = $body;
                     }
-                    if (!empty($parameters)) {
-                        $request->getQuery()->merge($parameters);
-                    }
+                    $response = $client->request($method, $uri, $options);
 
-                    $response = $request->send();
-
-                    return $response->json();
+                    return json_decode($response->getBody(), true);
                 } catch (BadResponseException $ex) {
                     $response = $ex->getResponse();
                     $status = $response->getStatusCode();
-                    $error = $response->json();
+                    $error = json_decode($response->getBody(), true);
                     $error = array_get($error, 0, array());
-                    $message = array_get($error, 'message', $response->getMessage());
+                    $message = array_get($error, 'message', $response->getReasonPhrase());
                     $code = array_get($error, 'errorCode', 'ERROR');
                     throw new RestException($status, $code . ' ' . $message);
                 } catch (\Exception $ex) {
@@ -350,9 +340,9 @@ class SalesforceDb extends BaseNoSqlDbService
                 }
             }
 
-            $error = $response->json();
+            $error = json_decode($response->getBody(), true);
             $error = array_get($error, 0, array());
-            $message = array_get($error, 'message', $response->getMessage());
+            $message = array_get($error, 'message', $response->getReasonPhrase());
             $code = array_get($error, 'errorCode', 'ERROR');
             throw new RestException($status, $code . ' ' . $message);
         } catch (\Exception $ex) {
@@ -372,10 +362,10 @@ class SalesforceDb extends BaseNoSqlDbService
     /**
      * Get Guzzle client
      *
-     * @return \Guzzle\Http\Client
+     * @return GuzzleClient
      */
     public function getGuzzleClient()
     {
-        return new GuzzleClient($this->getBaseUrl());
+        return new GuzzleClient(['base_uri' => $this->getBaseUrl()]);
     }
 }
