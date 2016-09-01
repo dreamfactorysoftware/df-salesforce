@@ -4,8 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- WSDL and Salesforce REST API version selection options for service config
+- OAuth config options to support service access via Salesforce OAuth
 
 ### Changed
+- Session token management for Salesforce API now cached and handles both authentication modes
 
 ### Fixed
 

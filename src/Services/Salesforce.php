@@ -3,12 +3,14 @@ namespace DreamFactory\Core\Salesforce\Services;
 
 use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Database\Schema\TableSchema;
-use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Core\Services\BaseNoSqlDbService;
+use DreamFactory\Core\OAuth\Components\OAuthServiceTrait;
+use DreamFactory\Core\Salesforce\Components\SalesforceProvider;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
+use DreamFactory\Core\Services\BaseNoSqlDbService;
+use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
 use Phpforce\SoapClient as SoapClient;
@@ -16,49 +18,53 @@ use Phpforce\SoapClient as SoapClient;
 /**
  * SalesforceDb
  *
- * A service to handle SalesforceDB NoSQL (schema-less) database
- * services accessed through the REST API.
+ * A database service to access Salesforce SObjects via their REST API.
  */
-class SalesforceDb extends BaseNoSqlDbService
+class Salesforce extends BaseNoSqlDbService
 {
-    use DbSchemaExtras;
-
-    //*************************************************************************
-    //	Constants
-    //*************************************************************************
-
-    //*************************************************************************
-    //	Members
-    //*************************************************************************
+    use DbSchemaExtras, OAuthServiceTrait;
 
     /**
-     * @var SalesforceDB
+     * Default Salesforce API version if not gleaned from connection.
      */
-    protected $dbConn = null;
+    const SALESFORCE_API_VERSION = '37.0';
+    /**
+     * OAuth service provider name.
+     */
+    const PROVIDER_NAME = 'salesforce';
+
+    /**
+     * @var GuzzleClient
+     */
+    protected $guzzleClient;
     /**
      * @var string
      */
     protected $username;
     /**
-     * @var array
+     * @var string
      */
     protected $password;
     /**
-     * @var array
+     * @var string
      */
     protected $securityToken;
     /**
-     * @var array
+     * @var string
      */
-    protected $version = 'v28.0';
+    protected $wsdl;
     /**
-     * @var array
+     * @var string
      */
-    protected $sessionCache;
+    protected $version;
     /**
-     * @var array
+     * @var string
      */
-    protected $fieldCache;
+    protected $sessionId;
+    /**
+     * @var string
+     */
+    protected $serverUrl;
     /**
      * @var array
      */
@@ -96,7 +102,7 @@ class SalesforceDb extends BaseNoSqlDbService
      * @throws \InvalidArgumentException
      * @throws \Exception
      */
-    public function __construct($settings = array())
+    public function __construct($settings = [])
     {
         parent::__construct($settings);
 
@@ -110,18 +116,34 @@ class SalesforceDb extends BaseNoSqlDbService
             $this->securityToken = ''; // gets appended to password
         }
 
-        if (empty($this->username) || empty($this->password)) {
-            throw new \InvalidArgumentException('A Salesforce username and password are required for this service.');
+        if (!empty($wsdl = array_get($config, 'wsdl'))) {
+            if (false === strpos($wsdl, DIRECTORY_SEPARATOR)) {
+                // no directories involved, store it where we want to store it
+                if (!empty($storage = storage_path('wsdl'))) {
+                    $wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $wsdl;
+                }
+            } elseif (false !== $path = realpath($wsdl)) {
+                $wsdl = $path;
+            }
+            $this->wsdl = $wsdl;
         }
 
-        $version = array_get($config, 'version');
-        if (!empty($version)) {
+        $this->defaultRole = array_get($config, 'default_role');
+
+        $clientId = array_get($config, 'client_id');
+        $clientSecret = array_get($config, 'client_secret');
+        $redirectUrl = array_get($config, 'redirect_url');
+        if (empty($clientId) || empty($clientSecret) || empty($redirectUrl)) {
+            if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
+                throw new \InvalidArgumentException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
+            }
+        } else {
+            $this->setProvider($config);
+        }
+
+        if (!empty($version = array_get($config, 'version'))) {
             $this->version = $version;
         }
-
-        $this->sessionCache = [];
-//
-//        $this->fieldCache = array();
     }
 
     /**
@@ -131,6 +153,26 @@ class SalesforceDb extends BaseNoSqlDbService
     {
     }
 
+    /** @inheritdoc */
+    protected function setProvider($config)
+    {
+        $clientId = array_get($config, 'client_id');
+        $clientSecret = array_get($config, 'client_secret');
+        $redirectUrl = array_get($config, 'redirect_url');
+        if (boolval(array_get($config, 'custom_provider', false))) {
+            // custom support?
+            $this->provider = new SalesforceProvider($clientId, $clientSecret, $redirectUrl);
+        } else {
+            $this->provider = new SalesforceProvider($clientId, $clientSecret, $redirectUrl);
+        }
+    }
+
+    /** @inheritdoc */
+    public function getProviderName()
+    {
+        return self::PROVIDER_NAME;
+    }
+
     /**
      * @param bool $list_only
      *
@@ -138,11 +180,11 @@ class SalesforceDb extends BaseNoSqlDbService
      */
     public function getSObjects($list_only = false)
     {
-        $result = $this->callGuzzle('GET', 'sobjects/');
+        $result = $this->callResource('sobjects');
 
         $tables = (array)array_get($result, 'sobjects');
         if ($list_only) {
-            $out = array();
+            $out = [];
             foreach ($tables as $table) {
                 $out[] = array_get($table, 'name');
             }
@@ -234,49 +276,93 @@ class SalesforceDb extends BaseNoSqlDbService
 
     protected function getSoapLoginResult()
     {
-        //@todo use client provided Salesforce wsdl for the different versions
-        $wsdl = __DIR__ . '/../../config/enterprise.wsdl.xml';
+        if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
+            return;
+        }
 
-        $builder = new SoapClient\ClientBuilder($wsdl, $this->username, $this->password, $this->securityToken);
+        $builder = new SoapClient\ClientBuilder($this->wsdl, $this->username, $this->password, $this->securityToken);
         $soapClient = $builder->build();
         if (!isset($soapClient)) {
             throw new InternalServerErrorException('Failed to build session with Salesforce.');
         }
 
         $result = $soapClient->getLoginResult();
-        $this->sessionCache['server_instance'] = $result->getServerInstance();
-        $this->sessionCache['session_id'] = $result->getSessionId();
-//        Pii::setState( 'service.' . $this->getApiName() . '.cache', $this->sessionCache );
+        $this->sessionId = $result->getSessionId();
+        $this->addToCache('session_id', $this->sessionId, true);
+        $serverInstance = $result->getServerInstance();
+        $this->serverUrl = sprintf('https://%s.salesforce.com', $serverInstance);
+        $this->addToCache('server_url', $this->serverUrl, true);
+        $this->version = strstr(substr($result->getServerUrl(), stripos($result->getServerUrl(), '/Soap/c/') + 8), '/',
+            true);
+        $this->addToCache('server_version', $this->version, true);
     }
 
     protected function getSessionId()
     {
-        $id = array_get($this->sessionCache, 'session_id');
-        if (empty($id)) {
-            $this->getSoapLoginResult();
-
-            $id = array_get($this->sessionCache, 'session_id');
-            if (empty($id)) {
-                throw new InternalServerErrorException('Failed to get session id from Salesforce.');
+        if (empty($this->sessionId)) {
+            if (empty($this->sessionId = $this->getOAuthToken())) {
+                if (empty($this->sessionId = $this->getFromCache('session_id'))) {
+                    $this->getSoapLoginResult();
+                    if (empty($this->sessionId)) {
+                        throw new InternalServerErrorException('Failed to get session id from Salesforce.');
+                    }
+                }
             }
         }
 
-        return $id;
+        return $this->sessionId;
     }
 
-    protected function getServerInstance()
+    protected function getServerUrl()
     {
-        $instance = array_get($this->sessionCache, 'server_instance');
-        if (empty($instance)) {
-            $this->getSoapLoginResult();
-
-            $instance = array_get($this->sessionCache, 'server_instance');
-            if (empty($instance)) {
-                throw new InternalServerErrorException('Failed to get server instance from Salesforce.');
+        if (empty($this->serverUrl)) {
+            if (empty($this->serverUrl = $this->getFromCache('server_url'))) {
+                if (!empty($this->provider) && !empty($response = $this->getOAuthResponse())) {
+                    $this->serverUrl = array_get($response, 'instance_url');
+                } else {
+                    $this->getSoapLoginResult();
+                    if (empty($this->serverUrl)) {
+                        throw new InternalServerErrorException('Failed to get server instance from Salesforce.');
+                    }
+                }
             }
         }
 
-        return $instance;
+        return $this->serverUrl;
+    }
+
+    protected function getVersion()
+    {
+        if (empty($this->version)) {
+            if (empty($this->version = $this->getFromCache('server_version'))) {
+                $this->getSoapLoginResult();
+                if (empty($this->version)) {
+                    $this->version = static::SALESFORCE_API_VERSION;
+                }
+            }
+        }
+
+        return $this->version;
+    }
+
+    /**
+     * Perform call to Salesforce REST API
+     *
+     * @param string       $resource
+     * @param string       $method
+     * @param string       $uri
+     * @param array        $parameters
+     * @param mixed        $body
+     *
+     * @throws InternalServerErrorException
+     * @throws RestException
+     * @return array The JSON response as an array
+     */
+    public function callResource($resource, $method = 'GET', $uri = null, $parameters = [], $body = null)
+    {
+        $uri = 'v' . $this->getVersion() . '/' . $resource . (empty($uri) ? '' : '/' . $uri);
+
+        return $this->callGuzzle($method, $uri, $parameters, $body);
     }
 
     /**
@@ -286,7 +372,6 @@ class SalesforceDb extends BaseNoSqlDbService
      * @param string       $uri
      * @param array        $parameters
      * @param mixed        $body
-     * @param GuzzleClient $client
      *
      * @throws InternalServerErrorException
      * @throws RestException
@@ -295,14 +380,11 @@ class SalesforceDb extends BaseNoSqlDbService
     public function callGuzzle(
         $method = 'GET',
         $uri = null,
-        $parameters = array(),
-        $body = null,
-        $client = null
-    ){
+        $parameters = [],
+        $body = null
+    ) {
+        $client = $this->getGuzzleClient();
         try {
-            if (!isset($client)) {
-                $client = $this->getGuzzleClient();
-            }
             $options = ['query' => $parameters, 'headers' => ['Authorization' => 'Bearer ' . $this->getSessionId()]];
             if (!empty($body)) {
                 $options['headers']['Content-Type'] = 'application/json';
@@ -316,10 +398,13 @@ class SalesforceDb extends BaseNoSqlDbService
             $status = $response->getStatusCode();
             if (401 == $status) {
                 // attempt the clear cache and rebuild session
-                $this->sessionCache = array();
+                $this->flush();
                 // resend request
                 try {
-                    $options = ['query' => $parameters, 'headers' => ['Authorization' => 'Bearer ' . $this->getSessionId()]];
+                    $options = [
+                        'query'   => $parameters,
+                        'headers' => ['Authorization' => 'Bearer ' . $this->getSessionId()]
+                    ];
                     if (!empty($body)) {
                         $options['headers']['Content-Type'] = 'application/json';
                         $options['body'] = $body;
@@ -331,7 +416,7 @@ class SalesforceDb extends BaseNoSqlDbService
                     $response = $ex->getResponse();
                     $status = $response->getStatusCode();
                     $error = json_decode($response->getBody(), true);
-                    $error = array_get($error, 0, array());
+                    $error = array_get($error, 0, []);
                     $message = array_get($error, 'message', $response->getReasonPhrase());
                     $code = array_get($error, 'errorCode', 'ERROR');
                     throw new RestException($status, $code . ' ' . $message);
@@ -341,22 +426,13 @@ class SalesforceDb extends BaseNoSqlDbService
             }
 
             $error = json_decode($response->getBody(), true);
-            $error = array_get($error, 0, array());
+            $error = array_get($error, 0, []);
             $message = array_get($error, 'message', $response->getReasonPhrase());
             $code = array_get($error, 'errorCode', 'ERROR');
             throw new RestException($status, $code . ' ' . $message);
         } catch (\Exception $ex) {
             throw new InternalServerErrorException($ex->getMessage(), $ex->getCode() ?: null);
         }
-    }
-
-    protected function getBaseUrl()
-    {
-        return sprintf(
-            'https://%s.salesforce.com/services/data/%s/',
-            $this->getServerInstance(),
-            $this->version
-        );
     }
 
     /**
@@ -366,6 +442,11 @@ class SalesforceDb extends BaseNoSqlDbService
      */
     public function getGuzzleClient()
     {
-        return new GuzzleClient(['base_uri' => $this->getBaseUrl()]);
+        if (!$this->guzzleClient) {
+            $uri = rtrim($this->getServerUrl(), '/') . '/services/data/';
+            $this->guzzleClient = new GuzzleClient(['base_uri' => $uri]);
+        }
+
+        return $this->guzzleClient;
     }
 }

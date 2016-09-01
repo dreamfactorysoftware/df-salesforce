@@ -5,7 +5,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseDbSchemaResource;
-use DreamFactory\Core\Salesforce\Services\SalesforceDb;
+use DreamFactory\Core\Salesforce\Services\Salesforce;
 
 class Schema extends BaseDbSchemaResource
 {
@@ -14,7 +14,7 @@ class Schema extends BaseDbSchemaResource
     //*************************************************************************
 
     /**
-     * @var null|SalesforceDb
+     * @var null|Salesforce
      */
     protected $parent = null;
 
@@ -23,7 +23,7 @@ class Schema extends BaseDbSchemaResource
     //*************************************************************************
 
     /**
-     * @return null|SalesforceDb
+     * @return null|Salesforce
      */
     public function getService()
     {
@@ -38,7 +38,7 @@ class Schema extends BaseDbSchemaResource
         $name = (is_array($table)) ? array_get($table, 'name') : $table;
 
         try {
-            $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+            $result = $this->parent->callResource('sobjects', 'GET', $table . '/describe');
 
             $out = $result;
             $out['access'] = $this->getPermissions($name);
