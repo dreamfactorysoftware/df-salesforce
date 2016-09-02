@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Salesforce\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
-use DreamFactory\Core\OAuth\Models\OAuthConfig;
+use DreamFactory\Core\Models\Service;
 use Illuminate\Database\Query\Builder;
 
 /**
@@ -20,94 +20,24 @@ class SalesforceConfig extends BaseServiceConfigModel
 {
     protected $table = 'salesforce_db_config';
 
-    protected $fillable = ['service_id', 'username', 'password', 'security_token', 'wsdl', 'version'];
+    protected $fillable = ['service_id', 'username', 'password', 'security_token', 'wsdl', 'version', 'oauth_service_id'];
 
     protected $encrypted = ['password', 'security_token'];
 
-    protected static $oauthFields = [
-        'default_role',
-        'client_id',
-        'client_secret',
-        'redirect_url',
-        'icon_class',
-        'custom_provider',
-    ];
-
     public static function validateConfig($config, $create = true)
     {
-        // if not using OAuth, need some creds for SOAP Authentication
-        if (empty(array_get($config, 'wsdl')) || empty(array_get($config, 'username')) ||
-            empty(array_get($config, 'password'))
-        ) {
-            try {
-                OAuthConfig::validateConfig($config, $create);
-            } catch (\Exception $ex) {
-                throw new BadRequestException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
+        if ($create) {
+            // if not using OAuth, need some creds for SOAP Authentication
+            if (empty(array_get($config, 'wsdl')) || empty(array_get($config, 'username')) ||
+                empty(array_get($config, 'password'))
+            ) {
+                if (empty(array_get($config, 'oauth_service_id'))) {
+                    throw new BadRequestException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
+                }
             }
         }
 
         return true;
-    }
-
-    public static function getConfig($id)
-    {
-        $config = parent::getConfig($id);
-
-        $oauthConfig = OAuthConfig::find($id);
-        if (!empty($oauthConfig)) {
-            $config = array_merge((array)$config, $oauthConfig->toArray());
-        }
-
-        return $config;
-    }
-
-    public static function setConfig($id, $config)
-    {
-        $configOAuth = [];
-        foreach (static::$oauthFields as $field) {
-            if (!empty($temp = array_get($config, $field))) {
-                $configOAuth[$field] = $temp;
-            }
-            unset($config[$field]);
-        }
-
-        if (!empty($model = OAuthConfig::find($id))) {
-            if (!empty($configOAuth)) {
-                $model->update($configOAuth);
-            } else {
-                $model->delete($id);
-            }
-        } else {
-            //Making sure service_id is the first item in the config.
-            //This way service_id will be set first and is available
-            //for use right away. This helps setting an auto-generated
-            //field that may depend on parent data. See OAuthConfig->setAttribute.
-            $configOAuth = array_reverse($configOAuth, true);
-            $configOAuth['service_id'] = $id;
-            $configOAuth = array_reverse($configOAuth, true);
-            OAuthConfig::create($configOAuth);
-        }
-
-        parent::setConfig($id, $config);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function getConfigSchema()
-    {
-        $out = parent::getConfigSchema();
-
-        $oauthConfig = new OAuthConfig();
-        if (!empty($oauthSchema = $oauthConfig->getConfigSchema())) {
-            foreach ($oauthSchema as &$item) {
-                // WSDL interface may be provisioned so don't require anything
-                $item['required'] = false;
-            }
-            $out = array_merge($out, $oauthSchema);
-        }
-
-        return $out;
     }
 
     /**
@@ -115,6 +45,15 @@ class SalesforceConfig extends BaseServiceConfigModel
      */
     protected static function prepareConfigSchemaField(array &$schema)
     {
+        $serviceList = ['label' => 'None', 'name' => null];
+        $services = Service::whereType('oauth_salesforce')->get();
+        foreach ($services as $service) {
+            $serviceList[] = [
+                'label' => $service->name,
+                'name'  => $service->id
+            ];
+        }
+
         parent::prepareConfigSchemaField($schema);
 
         switch ($schema['name']) {
@@ -140,6 +79,12 @@ class SalesforceConfig extends BaseServiceConfigModel
                 $schema['label'] = 'Salesforce API Version';
                 $schema['description'] = 'Select a specific version of the API to make calls against. ' .
                     'By default, the latest version authenticated against is used.';
+                break;
+            case 'oauth_service_id':
+                $schema['type'] = 'picklist';
+                $schema['values'] = $serviceList;
+                $schema['label'] = 'OAuth Service';
+                $schema['description'] = 'OAuth service to use for authenticating to your Salesforce organization.';
                 break;
         }
     }

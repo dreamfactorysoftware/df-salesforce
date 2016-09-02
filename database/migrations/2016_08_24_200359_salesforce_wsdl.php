@@ -15,6 +15,8 @@ class SalesforceWsdl extends Migration
         Schema::table('salesforce_db_config', function (Blueprint $t) {
             $t->longText('wsdl')->nullable();
             $t->string('version') ->nullable();
+            $t->integer('oauth_service_id')->unsigned()->nullable();
+            $t->foreign('oauth_service_id')->references('service_id')->on('oauth_config');
         });
     }
 
@@ -28,6 +30,7 @@ class SalesforceWsdl extends Migration
         Schema::table('salesforce_db_config', function (Blueprint $t) {
             $t->dropColumn('wsdl');
             $t->dropColumn('version');
+            $t->dropColumn('oauth_service_id');
         });
     }
 }

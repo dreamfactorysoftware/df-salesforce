@@ -5,8 +5,8 @@ use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Core\OAuth\Components\OAuthServiceTrait;
-use DreamFactory\Core\Salesforce\Components\SalesforceProvider;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\OAuth\Models\OAuthTokenMap;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Services\BaseNoSqlDbService;
@@ -22,16 +22,12 @@ use Phpforce\SoapClient as SoapClient;
  */
 class Salesforce extends BaseNoSqlDbService
 {
-    use DbSchemaExtras, OAuthServiceTrait;
+    use DbSchemaExtras;
 
     /**
      * Default Salesforce API version if not gleaned from connection.
      */
     const SALESFORCE_API_VERSION = '37.0';
-    /**
-     * OAuth service provider name.
-     */
-    const PROVIDER_NAME = 'salesforce';
 
     /**
      * @var GuzzleClient
@@ -57,6 +53,10 @@ class Salesforce extends BaseNoSqlDbService
      * @var string
      */
     protected $version;
+    /**
+     * @var integer
+     */
+    protected $oauthServiceId;
     /**
      * @var string
      */
@@ -95,7 +95,7 @@ class Salesforce extends BaseNoSqlDbService
     //*************************************************************************
 
     /**
-     * Create a new SalesforceDbSvc
+     * Create a new Salesforce service
      *
      * @param array $settings
      *
@@ -128,21 +128,16 @@ class Salesforce extends BaseNoSqlDbService
             $this->wsdl = $wsdl;
         }
 
-        $this->defaultRole = array_get($config, 'default_role');
+        if (!empty($version = array_get($config, 'version'))) {
+            $this->version = $version;
+        }
 
-        $clientId = array_get($config, 'client_id');
-        $clientSecret = array_get($config, 'client_secret');
-        $redirectUrl = array_get($config, 'redirect_url');
-        if (empty($clientId) || empty($clientSecret) || empty($redirectUrl)) {
+        $this->oauthServiceId = array_get($config, 'oauth_service_id');
+
+        if (empty($this->oauthServiceId)) {
             if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
                 throw new \InvalidArgumentException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
             }
-        } else {
-            $this->setProvider($config);
-        }
-
-        if (!empty($version = array_get($config, 'version'))) {
-            $this->version = $version;
         }
     }
 
@@ -151,26 +146,6 @@ class Salesforce extends BaseNoSqlDbService
      */
     public function __destruct()
     {
-    }
-
-    /** @inheritdoc */
-    protected function setProvider($config)
-    {
-        $clientId = array_get($config, 'client_id');
-        $clientSecret = array_get($config, 'client_secret');
-        $redirectUrl = array_get($config, 'redirect_url');
-        if (boolval(array_get($config, 'custom_provider', false))) {
-            // custom support?
-            $this->provider = new SalesforceProvider($clientId, $clientSecret, $redirectUrl);
-        } else {
-            $this->provider = new SalesforceProvider($clientId, $clientSecret, $redirectUrl);
-        }
-    }
-
-    /** @inheritdoc */
-    public function getProviderName()
-    {
-        return self::PROVIDER_NAME;
     }
 
     /**
@@ -277,13 +252,13 @@ class Salesforce extends BaseNoSqlDbService
     protected function getSoapLoginResult()
     {
         if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
-            return;
+            throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
         $builder = new SoapClient\ClientBuilder($this->wsdl, $this->username, $this->password, $this->securityToken);
         $soapClient = $builder->build();
         if (!isset($soapClient)) {
-            throw new InternalServerErrorException('Failed to build session with Salesforce.');
+            throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
         $result = $soapClient->getLoginResult();
@@ -297,14 +272,35 @@ class Salesforce extends BaseNoSqlDbService
         $this->addToCache('server_version', $this->version, true);
     }
 
+    protected function getOAuthLoginResult()
+    {
+        if (empty($this->oauthServiceId)) {
+            throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
+        }
+
+        if (empty($result = $this->getOAuthResponse())) {
+            throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
+        }
+
+        $this->sessionId = array_get($result, 'access_token'); // don't cache this
+        $this->serverUrl = array_get($result, 'instance_url');
+        $this->addToCache('server_url', $this->serverUrl, true);
+
+        if (!empty($result = $this->callGuzzle('GET'))) {
+            $this->version = array_get(array_last($result), 'version');
+            $this->addToCache('server_version', $this->version, true);
+        }
+    }
+
     protected function getSessionId()
     {
         if (empty($this->sessionId)) {
+            // oauth takes precedence over cached SOAP generated session
             if (empty($this->sessionId = $this->getOAuthToken())) {
                 if (empty($this->sessionId = $this->getFromCache('session_id'))) {
                     $this->getSoapLoginResult();
                     if (empty($this->sessionId)) {
-                        throw new InternalServerErrorException('Failed to get session id from Salesforce.');
+                        throw new UnauthorizedException('Failed to build a session with Salesforce.');
                     }
                 }
             }
@@ -317,13 +313,13 @@ class Salesforce extends BaseNoSqlDbService
     {
         if (empty($this->serverUrl)) {
             if (empty($this->serverUrl = $this->getFromCache('server_url'))) {
-                if (!empty($this->provider) && !empty($response = $this->getOAuthResponse())) {
-                    $this->serverUrl = array_get($response, 'instance_url');
-                } else {
+                try {
+                    $this->getOAuthLoginResult();
+                } catch (\Exception $ex) {
                     $this->getSoapLoginResult();
-                    if (empty($this->serverUrl)) {
-                        throw new InternalServerErrorException('Failed to get server instance from Salesforce.');
-                    }
+                }
+                if (empty($this->serverUrl)) {
+                    throw new InternalServerErrorException('Failed to get server instance from Salesforce.');
                 }
             }
         }
@@ -335,7 +331,15 @@ class Salesforce extends BaseNoSqlDbService
     {
         if (empty($this->version)) {
             if (empty($this->version = $this->getFromCache('server_version'))) {
-                $this->getSoapLoginResult();
+                try {
+                    $this->getOAuthLoginResult();
+                } catch (\Exception $ex) {
+                    try {
+                        $this->getSoapLoginResult();
+                    } catch (\Exception $ex) {
+                        // do nothing here, see fallback below
+                    }
+                }
                 if (empty($this->version)) {
                     $this->version = static::SALESFORCE_API_VERSION;
                 }
@@ -345,14 +349,24 @@ class Salesforce extends BaseNoSqlDbService
         return $this->version;
     }
 
+    protected function getOAuthToken()
+    {
+        return OAuthTokenMap::getCachedToken($this->oauthServiceId, Session::getCurrentUserId());
+    }
+
+    protected function getOAuthResponse()
+    {
+        return OAuthTokenMap::whereServiceId($this->oauthServiceId)->whereUserId(Session::getCurrentUserId())->value('response');
+    }
+
     /**
      * Perform call to Salesforce REST API
      *
-     * @param string       $resource
-     * @param string       $method
-     * @param string       $uri
-     * @param array        $parameters
-     * @param mixed        $body
+     * @param string $resource
+     * @param string $method
+     * @param string $uri
+     * @param array  $parameters
+     * @param mixed  $body
      *
      * @throws InternalServerErrorException
      * @throws RestException
@@ -368,10 +382,10 @@ class Salesforce extends BaseNoSqlDbService
     /**
      * Perform call to Salesforce REST API
      *
-     * @param string       $method
-     * @param string       $uri
-     * @param array        $parameters
-     * @param mixed        $body
+     * @param string $method
+     * @param string $uri
+     * @param array  $parameters
+     * @param mixed  $body
      *
      * @throws InternalServerErrorException
      * @throws RestException
