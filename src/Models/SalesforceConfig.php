@@ -24,6 +24,8 @@ class SalesforceConfig extends BaseServiceConfigModel
 
     protected $encrypted = ['password', 'security_token'];
 
+    protected $protected = ['password', 'security_token'];
+
     public static function validateConfig($config, $create = true)
     {
         if ($create) {
