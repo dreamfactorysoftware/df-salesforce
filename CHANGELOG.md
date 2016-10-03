@@ -9,6 +9,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.5.0] - 2016-10-03
+### Added
+- DF-135 WSDL and Salesforce REST API version selection options for service config
+- OAuth config options to support service access via Salesforce OAuth
+
+### Changed
+- Session token management for Salesforce API now cached and handles both authentication modes
+- DF-826 Protecting passwords and security tokens.
+
 ## [0.4.1] - 2016-08-22
 ### Changed
 - Upgraded to latest GuzzleHttp client.
@@ -37,7 +46,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/dreamfactorysoftware/df-salesforce/compare/0.3.0...0.3.1

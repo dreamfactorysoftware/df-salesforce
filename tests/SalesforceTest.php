@@ -1,11 +1,11 @@
 <?php
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Salesforce\Services\SalesforceDb;
+use DreamFactory\Core\Salesforce\Services\Salesforce;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Testing\TestServiceRequest;
-use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Library\Utility\Enums\Verbs;
 
 class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 {
@@ -23,16 +23,16 @@ class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
     const TABLE_ID = Table::DEFAULT_ID_FIELD;
 
     /**
-     * @var SalesforceDb
+     * @var Salesforce
      */
     protected $service = null;
 
-    public function setup()
+    public function setUp()
     {
-        parent::setup();
+        parent::setUp();
 
         $options = ['username' => env('SF_USER'), 'password' => env('SF_PASSWORD'), 'db' => env('SF_DB')];
-        $this->service = new SalesforceDb(
+        $this->service = new Salesforce(
             [
                 'name'        => static::SERVICE_NAME,
                 'label'       => 'Salesforce Database',

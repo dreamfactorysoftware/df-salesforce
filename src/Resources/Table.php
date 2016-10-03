@@ -7,7 +7,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseNoSqlDbTableResource;
-use DreamFactory\Core\Salesforce\Services\SalesforceDb;
+use DreamFactory\Core\Salesforce\Services\Salesforce;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
 
@@ -27,7 +27,7 @@ class Table extends BaseNoSqlDbTableResource
     //*************************************************************************
 
     /**
-     * @var null|SalesforceDb
+     * @var null|Salesforce
      */
     protected $parent = null;
 
@@ -36,7 +36,7 @@ class Table extends BaseNoSqlDbTableResource
     //*************************************************************************
 
     /**
-     * @return null|SalesforceDb
+     * @return null|Salesforce
      */
     public function getService()
     {
@@ -54,7 +54,7 @@ class Table extends BaseNoSqlDbTableResource
 
         $next = array_get($extras, 'next');
         if (!empty($next)) {
-            $result = $this->parent->callGuzzle('GET', 'query/' . $next);
+            $result = $this->parent->callResource('query', 'GET', $next);
         } else {
             // build query string
             $query = 'SELECT ' . $fields . ' FROM ' . $table;
@@ -78,7 +78,7 @@ class Table extends BaseNoSqlDbTableResource
                 $query .= ' LIMIT ' . $limit;
             }
 
-            $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
+            $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
         }
 
         $data = array_get($result, 'records', []);
@@ -98,7 +98,7 @@ class Table extends BaseNoSqlDbTableResource
 
     protected function getFieldsInfo($table)
     {
-        $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $result = $this->parent->callResource('sobjects', 'GET', $table . '/describe');
         $result = array_get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
@@ -130,7 +130,7 @@ class Table extends BaseNoSqlDbTableResource
      */
     protected function getAllFields($table, $as_array = false)
     {
-        $result = $this->parent->callGuzzle('GET', 'sobjects/' . $table . '/describe');
+        $result = $this->parent->callResource('sobjects', 'GET', $table . '/describe');
         $result = array_get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
@@ -198,15 +198,13 @@ class Table extends BaseNoSqlDbTableResource
         $rollback = false,
         $continue = false,
         $single = false
-    ){
+    ) {
         $fields = array_get($extras, ApiOptions::FIELDS);
         $ssFilters = array_get($extras, 'ss_filters');
         $updates = array_get($extras, 'updates');
         $idFields = array_get($extras, 'id_fields');
         $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
         $requireMore = Scalar::boolval(array_get($extras, 'require_more'));
-
-        $client = $this->parent->getGuzzleClient();
 
         $out = [];
         switch ($this->getAction()) {
@@ -217,9 +215,7 @@ class Table extends BaseNoSqlDbTableResource
                 }
 
                 $native = json_encode($parsed);
-                $result =
-                    $this->parent->callGuzzle('POST', 'sobjects/' . $this->transactionTable . '/', null, $native,
-                        $client);
+                $result = $this->parent->callResource('sobjects', 'POST', $this->transactionTable . '/', null, $native);
                 if (!Scalar::boolval(array_get($result, 'success', false))) {
                     $msg = json_encode(array_get($result, 'errors'));
                     throw new InternalServerErrorException("Record insert failed for table '$this->transactionTable'.\n" .
@@ -246,13 +242,8 @@ class Table extends BaseNoSqlDbTableResource
                 static::removeIds($parsed, $idFields);
                 $native = json_encode($parsed);
 
-                $result = $this->parent->callGuzzle(
-                    'PATCH',
-                    'sobjects/' . $this->transactionTable . '/' . $id,
-                    null,
-                    $native,
-                    $client
-                );
+                $result = $this->parent->callResource('sobjects', 'PATCH', $this->transactionTable . '/' . $id, null,
+                    $native);
                 if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
                     $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record update failed for table '$this->transactionTable'.\n" .
@@ -263,13 +254,7 @@ class Table extends BaseNoSqlDbTableResource
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::DELETE:
-                $result = $this->parent->callGuzzle(
-                    'DELETE',
-                    'sobjects/' . $this->transactionTable . '/' . $id,
-                    null,
-                    null,
-                    $client
-                );
+                $result = $this->parent->callResource('sobjects', 'DELETE', $this->transactionTable . '/' . $id);
                 if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
                     $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record delete failed for table '$this->transactionTable'.\n" .
@@ -286,11 +271,8 @@ class Table extends BaseNoSqlDbTableResource
 
                 $fields = $this->buildFieldList($this->transactionTable, $fields, $idFields);
 
-                $result = $this->parent->callGuzzle(
-                    'GET',
-                    'sobjects/' . $this->transactionTable . '/' . $id,
-                    ['fields' => $fields]
-                );
+                $result = $this->parent->callResource('sobjects', 'GET', $this->transactionTable . '/' . $id,
+                    ['fields' => $fields]);
                 if (empty($result)) {
                     throw new NotFoundException("Record with identifier '" . print_r($id, true) . "' not found.");
                 }
@@ -337,7 +319,7 @@ class Table extends BaseNoSqlDbTableResource
                     ' IN ' .
                     $idList;
 
-                $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
+                $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
 
                 $out = array_get($result, 'records', []);
                 if (empty($out)) {
@@ -372,7 +354,7 @@ class Table extends BaseNoSqlDbTableResource
                         ' IN ' .
                         $idList;
 
-                    $result = $this->parent->callGuzzle('GET', 'query', ['q' => $query]);
+                    $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
 
                     $out = array_get($result, 'records', []);
                     if (empty($out)) {
