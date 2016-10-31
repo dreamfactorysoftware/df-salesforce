@@ -72,7 +72,25 @@ class Schema extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
-    public function createTable($table, $properties = array(), $check_exist = false, $return_schema = false)
+    public function describeRelationship($table, $relationship, $refresh = false)
+    {
+        $result = $this->describeTable($table);
+        $fields = array_get($result, 'related');
+        if (empty($fields)) {
+            foreach ($fields as $item) {
+                if (array_get($item, 'name') == $relationship) {
+                    return $item;
+                }
+            }
+        }
+
+        throw new NotFoundException("Relationship '$relationship' not found.");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function createTable($table, $properties = [], $check_exist = false, $return_schema = false)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
@@ -80,7 +98,7 @@ class Schema extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
-    public function updateTable($table, $properties = array(), $allow_delete_fields = false, $return_schema = false)
+    public function updateTable($table, $properties = [], $allow_delete_fields = false, $return_schema = false)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
@@ -96,8 +114,21 @@ class Schema extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
-    public function createField($table, $field, $properties = array(), $check_exist = false, $return_schema = false)
+    public function createField($table, $field, $properties = [], $check_exist = false, $return_schema = false)
     {
+        throw new NotImplementedException("Metadata actions currently not supported.");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function createRelationship(
+        $table,
+        $relationship,
+        $properties = [],
+        $check_exist = false,
+        $return_schema = false
+    ) {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
 
@@ -107,10 +138,23 @@ class Schema extends BaseDbSchemaResource
     public function updateField(
         $table,
         $field,
-        $properties = array(),
+        $properties = [],
         $allow_delete_parts = false,
         $return_schema = false
-    ){
+    ) {
+        throw new NotImplementedException("Metadata actions currently not supported.");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateRelationship(
+        $table,
+        $relationship,
+        $properties = [],
+        $allow_delete_parts = false,
+        $return_schema = false
+    ) {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
 
@@ -118,6 +162,14 @@ class Schema extends BaseDbSchemaResource
      * {@inheritdoc}
      */
     public function deleteField($table, $field)
+    {
+        throw new NotImplementedException("Metadata actions currently not supported.");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteRelationship($table, $relationship)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
