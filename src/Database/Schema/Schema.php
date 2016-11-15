@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Salesforce\Database\Schema;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
-use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
 
@@ -60,7 +59,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
     /**
      * @inheritdoc
      */
-    public function createTable($table, $schema, $options = null)
+    protected function createTable($table, $options)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
@@ -68,7 +67,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
     /**
      * @inheritdoc
      */
-    protected function updateTable($table_name, $schema)
+    protected function updateTable($table, $changes)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
