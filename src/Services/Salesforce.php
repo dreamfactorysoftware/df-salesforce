@@ -1,15 +1,14 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Services;
 
-use DreamFactory\Core\Components\DbSchemaExtras;
-use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\OAuth\Models\OAuthTokenMap;
+use DreamFactory\Core\Salesforce\Database\Schema\Schema as DatabaseSchema;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
-use DreamFactory\Core\Services\BaseNoSqlDbService;
+use DreamFactory\Core\Services\BaseDbService;
 use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
@@ -20,10 +19,8 @@ use Phpforce\SoapClient as SoapClient;
  *
  * A database service to access Salesforce SObjects via their REST API.
  */
-class Salesforce extends BaseNoSqlDbService
+class Salesforce extends BaseDbService
 {
-    use DbSchemaExtras;
-
     /**
      * Default Salesforce API version if not gleaned from connection.
      */
@@ -65,14 +62,6 @@ class Salesforce extends BaseNoSqlDbService
      * @var string
      */
     protected $serverUrl;
-    /**
-     * @var array
-     */
-    protected $tableNames = [];
-    /**
-     * @var array
-     */
-    protected $tables = [];
 
     /**
      * @var array
@@ -139,13 +128,11 @@ class Salesforce extends BaseNoSqlDbService
                 throw new \InvalidArgumentException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
             }
         }
-    }
-
-    /**
-     * Object destructor
-     */
-    public function __destruct()
-    {
+        $this->dbConn = $this;
+        /** @noinspection PhpParamsInspection */
+        $this->schema = new DatabaseSchema($this->dbConn);
+        $this->schema->setCache($this);
+        $this->schema->setExtraStore($this);
     }
 
     /**
@@ -168,42 +155,6 @@ class Salesforce extends BaseNoSqlDbService
         }
 
         return $tables;
-    }
-
-    public function getTableNames($schema = null, $refresh = false, $use_alias = false)
-    {
-        if ($refresh ||
-            (empty($this->tableNames) &&
-                (null === $this->tableNames = $this->getFromCache('table_names')))
-        ) {
-            /** @type TableSchema[] $names */
-            $names = [];
-            $tables = $this->getSObjects(true);
-            foreach ($tables as $table) {
-                $names[strtolower($table)] = new TableSchema(['name' => $table]);
-            }
-            // merge db extras
-            if (!empty($extrasEntries = $this->getSchemaExtrasForTables($tables, false))) {
-                foreach ($extrasEntries as $extras) {
-                    if (!empty($extraName = strtolower(strval($extras['table'])))) {
-                        if (array_key_exists($extraName, $tables)) {
-                            $names[$extraName]->fill($extras);
-                        }
-                    }
-                }
-            }
-            $this->tableNames = $names;
-            $this->addToCache('table_names', $this->tableNames, true);
-        }
-
-        return $this->tableNames;
-    }
-
-    public function refreshTableCache()
-    {
-        $this->removeFromCache('table_names');
-        $this->tableNames = [];
-        $this->tables = [];
     }
 
     /**
