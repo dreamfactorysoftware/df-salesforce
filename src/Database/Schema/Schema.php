@@ -9,7 +9,7 @@ use DreamFactory\Core\Salesforce\Services\Salesforce;
 /**
  * Schema is the class for retrieving metadata information from a MongoDB database (version 4.1.x and 5.x).
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class Schema extends \DreamFactory\Core\Database\Components\Schema
 {
     /**
      * @var Salesforce
@@ -29,7 +29,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
     protected function createColumn($column)
     {
         $c = new ColumnSchema(array_only($column, ['name', 'label', 'precision', 'scale']));
-        $c->rawName = $this->quoteColumnName($c->name);
+        $c->quotedName = $this->quoteColumnName($c->name);
         $c->autoIncrement = array_get($column, 'autoNumber', false);
         $c->allowNull = array_get($column, 'nillable', false);
         $c->refTable = array_get($column, 'referenceTo');
@@ -45,12 +45,14 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
     /**
      * @inheritdoc
      */
-    protected function findTableNames($schema = '', $include_views = true)
+    protected function findTableNames($schema = '')
     {
         $tables = [];
         $names = $this->connection->getSObjects(true);
         foreach ($names as $name) {
-            $tables[strtolower($name)] = new TableSchema(['name' => $name]);
+            $internalName = $quotedName = $tableName = $name;
+            $settings = compact('tableName', 'name', 'internalName','quotedName');
+            $tables[strtolower($name)] = new TableSchema($settings);
         }
 
         return $tables;

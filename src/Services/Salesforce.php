@@ -8,7 +8,7 @@ use DreamFactory\Core\OAuth\Models\OAuthTokenMap;
 use DreamFactory\Core\Salesforce\Database\Schema\Schema as DatabaseSchema;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
-use DreamFactory\Core\Services\BaseDbService;
+use DreamFactory\Core\Database\Services\BaseDbService;
 use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
