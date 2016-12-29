@@ -50,9 +50,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
         $tables = [];
         $names = $this->connection->getSObjects(true);
         foreach ($names as $name) {
-            $internalName = $quotedName = $tableName = $name;
-            $settings = compact('tableName', 'name', 'internalName','quotedName');
-            $tables[strtolower($name)] = new TableSchema($settings);
+            $tables[strtolower($name)] = new TableSchema(['name' => $name]);
         }
 
         return $tables;
