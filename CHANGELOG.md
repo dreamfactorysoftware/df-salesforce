@@ -4,8 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+
 ### Changed
+- Moved phpforce/soap-client login functionality into this repo to fix bugs and remove unused code.
+
 ### Fixed
+- DF-959 Support for custom domain names including hyphens.
 
 ## [0.6.0] - 2016-11-17
 ### Changed

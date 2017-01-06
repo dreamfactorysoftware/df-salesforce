@@ -29,8 +29,7 @@
   },
   "require":     {
     "dreamfactory/df-database":      "~0.1.0",
-    "socialiteproviders/salesforce": "^2.0",
-    "phpforce/soap-client":          "*"
+    "socialiteproviders/salesforce": "^2.0"
   },
   "autoload":    {
     "psr-4": {

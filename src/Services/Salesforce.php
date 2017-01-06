@@ -9,10 +9,11 @@ use DreamFactory\Core\Salesforce\Database\Schema\Schema as DatabaseSchema;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Database\Services\BaseDbService;
+use DreamFactory\Core\Salesforce\SoapClient\Client;
+use DreamFactory\Core\Salesforce\SoapClient\Soap\SoapClientFactory;
 use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
-use Phpforce\SoapClient as SoapClient;
 
 /**
  * SalesforceDb
@@ -206,13 +207,15 @@ class Salesforce extends BaseDbService
             throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
-        $builder = new SoapClient\ClientBuilder($this->wsdl, $this->username, $this->password, $this->securityToken);
-        $soapClient = $builder->build();
-        if (!isset($soapClient)) {
+        $soapClientFactory = new SoapClientFactory();
+        $soapClient = $soapClientFactory->factory($this->wsdl);
+
+        $client = new Client($soapClient, $this->username, $this->password, $this->securityToken);
+        if (!isset($client)) {
             throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
-        $result = $soapClient->getLoginResult();
+        $result = $client->getLoginResult();
         $this->sessionId = $result->getSessionId();
         $this->addToCache('session_id', $this->sessionId, true);
         $serverInstance = $result->getServerInstance();
