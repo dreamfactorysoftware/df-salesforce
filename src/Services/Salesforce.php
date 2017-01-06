@@ -101,21 +101,18 @@ class Salesforce extends BaseDbService
 
         $this->username = array_get($config, 'username');
         $this->password = array_get($config, 'password');
-        $this->securityToken = array_get($config, 'security_token');
-        if (empty($this->securityToken)) {
-            $this->securityToken = ''; // gets appended to password
-        }
+        $this->securityToken = strval(array_get($config, 'security_token')); // gets appended to password
+        $this->wsdl = array_get($config, 'wsdl');
 
-        if (!empty($wsdl = array_get($config, 'wsdl'))) {
-            if (false === strpos($wsdl, DIRECTORY_SEPARATOR)) {
+        if (!empty($this->wsdl)) {
+            if (false === strpos($this->wsdl, DIRECTORY_SEPARATOR)) {
                 // no directories involved, store it where we want to store it
                 if (!empty($storage = storage_path('wsdl'))) {
-                    $wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $wsdl;
+                    $this->wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->wsdl;
                 }
-            } elseif (false !== $path = realpath($wsdl)) {
-                $wsdl = $path;
+            } elseif (false !== $path = realpath($this->wsdl)) {
+                $this->wsdl = $path;
             }
-            $this->wsdl = $wsdl;
         }
 
         if (!empty($version = array_get($config, 'version'))) {
