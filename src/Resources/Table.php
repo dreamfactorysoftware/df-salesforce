@@ -228,7 +228,6 @@ class Table extends BaseNoSqlDbTableResource
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::PUT:
-            case Verbs::MERGE:
             case Verbs::PATCH:
                 if (!empty($updates)) {
                     $record = $updates;
@@ -333,7 +332,6 @@ class Table extends BaseNoSqlDbTableResource
         } elseif (!empty($this->batchIds)) {
             switch ($action) {
                 case Verbs::PUT:
-                case Verbs::MERGE:
                 case Verbs::PATCH:
                     break;
 
@@ -389,7 +387,6 @@ class Table extends BaseNoSqlDbTableResource
 
                 case Verbs::PUT:
                 case Verbs::PATCH:
-                case Verbs::MERGE:
                 case Verbs::DELETE:
                     break;
 
