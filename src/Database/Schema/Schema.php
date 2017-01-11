@@ -83,7 +83,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    public function dropColumn($table, $column)
+    public function dropColumns($table, $column)
     {
         // Do nothing here for now
         throw new NotImplementedException("Metadata actions currently not supported.");
