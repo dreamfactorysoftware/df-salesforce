@@ -3,7 +3,7 @@
   "description": "The DreamFactory(tm) Salesforce Service.",
   "keywords":    [
     "dreamfactory",
-    "dsp",
+    "api",
     "rest",
     "salesforce",
     "database",
@@ -38,7 +38,7 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.6.x-dev"
+      "dev-develop": "0.7.x-dev"
     }
   }
 }
