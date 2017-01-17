@@ -6,7 +6,7 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Resources\BaseNoSqlDbTableResource;
+use DreamFactory\Core\Database\Resources\BaseNoSqlDbTableResource;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
@@ -228,7 +228,6 @@ class Table extends BaseNoSqlDbTableResource
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
 
             case Verbs::PUT:
-            case Verbs::MERGE:
             case Verbs::PATCH:
                 if (!empty($updates)) {
                     $record = $updates;
@@ -333,7 +332,6 @@ class Table extends BaseNoSqlDbTableResource
         } elseif (!empty($this->batchIds)) {
             switch ($action) {
                 case Verbs::PUT:
-                case Verbs::MERGE:
                 case Verbs::PATCH:
                     break;
 
@@ -389,7 +387,6 @@ class Table extends BaseNoSqlDbTableResource
 
                 case Verbs::PUT:
                 case Verbs::PATCH:
-                case Verbs::MERGE:
                 case Verbs::DELETE:
                     break;
 

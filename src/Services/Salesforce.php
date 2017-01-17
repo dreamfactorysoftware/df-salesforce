@@ -8,11 +8,12 @@ use DreamFactory\Core\OAuth\Models\OAuthTokenMap;
 use DreamFactory\Core\Salesforce\Database\Schema\Schema as DatabaseSchema;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
-use DreamFactory\Core\Services\BaseDbService;
+use DreamFactory\Core\Database\Services\BaseDbService;
+use DreamFactory\Core\Salesforce\SoapClient\Client;
+use DreamFactory\Core\Salesforce\SoapClient\Soap\SoapClientFactory;
 use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
-use Phpforce\SoapClient as SoapClient;
 
 /**
  * SalesforceDb
@@ -100,21 +101,18 @@ class Salesforce extends BaseDbService
 
         $this->username = array_get($config, 'username');
         $this->password = array_get($config, 'password');
-        $this->securityToken = array_get($config, 'security_token');
-        if (empty($this->securityToken)) {
-            $this->securityToken = ''; // gets appended to password
-        }
+        $this->securityToken = strval(array_get($config, 'security_token')); // gets appended to password
+        $this->wsdl = array_get($config, 'wsdl');
 
-        if (!empty($wsdl = array_get($config, 'wsdl'))) {
-            if (false === strpos($wsdl, DIRECTORY_SEPARATOR)) {
+        if (!empty($this->wsdl)) {
+            if (false === strpos($this->wsdl, DIRECTORY_SEPARATOR)) {
                 // no directories involved, store it where we want to store it
                 if (!empty($storage = storage_path('wsdl'))) {
-                    $wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $wsdl;
+                    $this->wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->wsdl;
                 }
-            } elseif (false !== $path = realpath($wsdl)) {
-                $wsdl = $path;
+            } elseif (false !== $path = realpath($this->wsdl)) {
+                $this->wsdl = $path;
             }
-            $this->wsdl = $wsdl;
         }
 
         if (!empty($version = array_get($config, 'version'))) {
@@ -206,13 +204,15 @@ class Salesforce extends BaseDbService
             throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
-        $builder = new SoapClient\ClientBuilder($this->wsdl, $this->username, $this->password, $this->securityToken);
-        $soapClient = $builder->build();
-        if (!isset($soapClient)) {
+        $soapClientFactory = new SoapClientFactory();
+        $soapClient = $soapClientFactory->factory($this->wsdl);
+
+        $client = new Client($soapClient, $this->username, $this->password, $this->securityToken);
+        if (!isset($client)) {
             throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
-        $result = $soapClient->getLoginResult();
+        $result = $client->getLoginResult();
         $this->sessionId = $result->getSessionId();
         $this->addToCache('session_id', $this->sessionId, true);
         $serverInstance = $result->getServerInstance();
