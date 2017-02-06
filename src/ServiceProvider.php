@@ -14,7 +14,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
     use ServiceDocBuilder;
 
-    public function register()
+    public function boot()
     {
         // Add our service types.
         $this->app->resolving('df.service', function (ServiceManager $df) {
@@ -52,5 +52,8 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                 ])
             );
         });
+
+        // add migrations
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 }
