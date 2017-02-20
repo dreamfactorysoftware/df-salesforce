@@ -188,6 +188,12 @@ class Table extends BaseNoSqlDbTableResource
         return $fields;
     }
 
+    protected function parseValueForSet($value, $field_info, $for_update = false)
+    {
+        // base class does too much datetime stuff here
+        return $value;
+    }
+
     /**
      * {@inheritdoc}
      */
