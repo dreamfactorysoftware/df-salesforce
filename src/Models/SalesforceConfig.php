@@ -20,26 +20,32 @@ class SalesforceConfig extends BaseServiceConfigModel
 {
     protected $table = 'salesforce_db_config';
 
-    protected $fillable = ['service_id', 'username', 'password', 'security_token', 'wsdl', 'version', 'oauth_service_id'];
+    protected $fillable = [
+        'service_id',
+        'username',
+        'password',
+        'security_token',
+        'wsdl',
+        'version',
+        'oauth_service_id'
+    ];
 
     protected $encrypted = ['password', 'security_token'];
 
     protected $protected = ['password', 'security_token'];
 
-    public static function validateConfig($config, $create = true)
+    public function validate($data, $throwException = true)
     {
-        if ($create) {
-            // if not using OAuth, need some creds for SOAP Authentication
-            if (empty(array_get($config, 'wsdl')) || empty(array_get($config, 'username')) ||
-                empty(array_get($config, 'password'))
-            ) {
-                if (empty(array_get($config, 'oauth_service_id'))) {
-                    throw new BadRequestException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
-                }
+        // if not using OAuth, need some creds for SOAP Authentication
+        if (empty(array_get($data, 'wsdl')) || empty(array_get($data, 'username')) ||
+            empty(array_get($data, 'password'))
+        ) {
+            if (empty(array_get($data, 'oauth_service_id'))) {
+                throw new BadRequestException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
             }
         }
 
-        return true;
+        return parent::validate($data, $throwException);
     }
 
     /**
