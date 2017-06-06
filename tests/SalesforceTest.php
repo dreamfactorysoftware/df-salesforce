@@ -5,7 +5,7 @@ use DreamFactory\Core\Salesforce\Services\Salesforce;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Testing\TestServiceRequest;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 
 class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
 {

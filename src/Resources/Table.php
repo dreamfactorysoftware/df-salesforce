@@ -8,8 +8,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Database\Resources\BaseNoSqlDbTableResource;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Enums\Verbs;
 
 class Table extends BaseNoSqlDbTableResource
 {
@@ -83,7 +82,7 @@ class Table extends BaseNoSqlDbTableResource
 
         $data = array_get($result, 'records', []);
 
-        $includeCount = Scalar::boolval(array_get($extras, ApiOptions::INCLUDE_COUNT, false));
+        $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
         $moreToken = array_get($result, 'nextRecordsUrl');
         if ($includeCount || $moreToken) {
             // count total records
@@ -210,7 +209,7 @@ class Table extends BaseNoSqlDbTableResource
         $updates = array_get($extras, 'updates');
         $idFields = array_get($extras, 'id_fields');
         $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
-        $requireMore = Scalar::boolval(array_get($extras, 'require_more'));
+        $requireMore = array_get_bool($extras, 'require_more');
 
         $out = [];
         switch ($this->getAction()) {
@@ -222,7 +221,7 @@ class Table extends BaseNoSqlDbTableResource
 
                 $native = json_encode($parsed);
                 $result = $this->parent->callResource('sobjects', 'POST', $this->transactionTable . '/', null, $native);
-                if (!Scalar::boolval(array_get($result, 'success', false))) {
+                if (!array_get_bool($result, 'success')) {
                     $msg = json_encode(array_get($result, 'errors'));
                     throw new InternalServerErrorException("Record insert failed for table '$this->transactionTable'.\n" .
                         $msg);
@@ -249,7 +248,7 @@ class Table extends BaseNoSqlDbTableResource
 
                 $result = $this->parent->callResource('sobjects', 'PATCH', $this->transactionTable . '/' . $id, null,
                     $native);
-                if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
+                if ($result && !array_get_bool($result, 'success')) {
                     $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record update failed for table '$this->transactionTable'.\n" .
                         $msg);
@@ -260,7 +259,7 @@ class Table extends BaseNoSqlDbTableResource
 
             case Verbs::DELETE:
                 $result = $this->parent->callResource('sobjects', 'DELETE', $this->transactionTable . '/' . $id);
-                if ($result && !Scalar::boolval(array_get($result, 'success', false))) {
+                if ($result && !array_get_bool($result, 'success')) {
                     $msg = array_get($result, 'errors');
                     throw new InternalServerErrorException("Record delete failed for table '$this->transactionTable'.\n" .
                         $msg);
