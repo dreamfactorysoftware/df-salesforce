@@ -59,7 +59,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    protected function createTable($table, $options)
+    public function createTable($table, $options)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
@@ -67,7 +67,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    protected function updateTable($tableSchema, $changes)
+    public function updateTable($tableSchema, $changes)
     {
         throw new NotImplementedException("Metadata actions currently not supported.");
     }
@@ -92,7 +92,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    protected function createFieldReferences($references)
+    public function createFieldReferences($references)
     {
         // Do nothing here for now
         throw new NotImplementedException("Metadata actions currently not supported.");
@@ -101,7 +101,7 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    protected function createFieldIndexes($indexes)
+    public function createFieldIndexes($indexes)
     {
         // Do nothing here for now
         throw new NotImplementedException("Metadata actions currently not supported.");
