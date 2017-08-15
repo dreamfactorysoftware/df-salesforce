@@ -129,7 +129,6 @@ class Salesforce extends BaseDbService
         $this->dbConn = $this;
         /** @noinspection PhpParamsInspection */
         $this->schema = new DatabaseSchema($this->dbConn);
-        $this->schema->setExtraStore($this);
     }
 
     /**
