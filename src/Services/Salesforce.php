@@ -96,13 +96,10 @@ class Salesforce extends BaseDbService
     {
         parent::__construct($settings);
 
-        $config = (array)array_get($settings, 'config');
-        Session::replaceLookups($config, true);
-
-        $this->username = array_get($config, 'username');
-        $this->password = array_get($config, 'password');
-        $this->securityToken = strval(array_get($config, 'security_token')); // gets appended to password
-        $this->wsdl = array_get($config, 'wsdl');
+        $this->username = array_get($this->config, 'username');
+        $this->password = array_get($this->config, 'password');
+        $this->securityToken = strval(array_get($this->config, 'security_token')); // gets appended to password
+        $this->wsdl = array_get($this->config, 'wsdl');
 
         if (!empty($this->wsdl)) {
             if (false === strpos($this->wsdl, DIRECTORY_SEPARATOR)) {
@@ -115,11 +112,11 @@ class Salesforce extends BaseDbService
             }
         }
 
-        if (!empty($version = array_get($config, 'version'))) {
+        if (!empty($version = array_get($this->config, 'version'))) {
             $this->version = $version;
         }
 
-        $this->oauthServiceId = array_get($config, 'oauth_service_id');
+        $this->oauthServiceId = array_get($this->config, 'oauth_service_id');
 
         if (empty($this->oauthServiceId)) {
             if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
@@ -129,6 +126,8 @@ class Salesforce extends BaseDbService
         $this->dbConn = $this;
         /** @noinspection PhpParamsInspection */
         $this->schema = new DatabaseSchema($this->dbConn);
+
+        $this->setConfigBasedCachePrefix($this->username . $this->wsdl . ':');
     }
 
     /**
