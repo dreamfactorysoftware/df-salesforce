@@ -1,10 +1,10 @@
 <?php
 namespace DreamFactory\Core\Salesforce\Models;
 
+use DreamFactory\Core\Database\Components\SupportsUpsertAndCache;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use DreamFactory\Core\Models\Service;
-use Illuminate\Database\Query\Builder;
 
 /**
  * SalesforceConfig
@@ -14,10 +14,11 @@ use Illuminate\Database\Query\Builder;
  * @property string  $options
  * @property string  $driver_options
  *
- * @method static Builder|SalesforceConfig whereServiceId($value)
  */
 class SalesforceConfig extends BaseServiceConfigModel
 {
+    use SupportsUpsertAndCache;
+
     protected $table = 'salesforce_db_config';
 
     protected $fillable = [
