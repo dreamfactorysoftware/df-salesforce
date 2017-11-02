@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce\Models;
 
 use DreamFactory\Core\Database\Components\SupportsUpsertAndCache;
@@ -29,6 +30,11 @@ class SalesforceConfig extends BaseServiceConfigModel
         'wsdl',
         'version',
         'oauth_service_id'
+    ];
+
+    protected $casts = [
+        'service_id'       => 'integer',
+        'oauth_service_id' => 'integer'
     ];
 
     protected $encrypted = ['password', 'security_token'];
