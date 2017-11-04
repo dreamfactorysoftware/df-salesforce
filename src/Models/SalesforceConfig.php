@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce\Models;
 
 use DreamFactory\Core\Database\Components\SupportsUpsertAndCache;
@@ -31,6 +32,11 @@ class SalesforceConfig extends BaseServiceConfigModel
         'oauth_service_id'
     ];
 
+    protected $casts = [
+        'service_id'       => 'integer',
+        'oauth_service_id' => 'integer'
+    ];
+
     protected $encrypted = ['password', 'security_token'];
 
     protected $protected = ['password', 'security_token'];
@@ -54,15 +60,6 @@ class SalesforceConfig extends BaseServiceConfigModel
      */
     protected static function prepareConfigSchemaField(array &$schema)
     {
-        $serviceList = ['label' => 'None', 'name' => null];
-        $services = Service::whereType('oauth_salesforce')->get();
-        foreach ($services as $service) {
-            $serviceList[] = [
-                'label' => $service->name,
-                'name'  => $service->id
-            ];
-        }
-
         parent::prepareConfigSchemaField($schema);
 
         switch ($schema['name']) {
@@ -90,6 +87,15 @@ class SalesforceConfig extends BaseServiceConfigModel
                     'By default, the latest version authenticated against is used.';
                 break;
             case 'oauth_service_id':
+                $serviceList = [['label' => 'None', 'name' => null]];
+                $services = Service::whereType('oauth_salesforce')->get();
+                foreach ($services as $service) {
+                    $serviceList[] = [
+                        'label' => $service->name,
+                        'name'  => $service->id
+                    ];
+                }
+
                 $schema['type'] = 'picklist';
                 $schema['values'] = $serviceList;
                 $schema['label'] = 'OAuth Service';

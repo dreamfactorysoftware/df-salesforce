@@ -1,6 +1,8 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce;
 
+use DreamFactory\Core\Enums\LicenseLevel;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\OAuth\Models\OAuthConfig;
 use DreamFactory\Core\Salesforce\Models\SalesforceConfig;
@@ -17,12 +19,13 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->resolving('df.service', function (ServiceManager $df) {
             $df->addType(
                 new ServiceType([
-                    'name'            => 'salesforce_db',
-                    'label'           => 'Salesforce',
-                    'description'     => 'Database service with SOAP and/or OAuth authentication support for Salesforce connections.',
-                    'group'           => ServiceTypeGroups::DATABASE,
-                    'config_handler'  => SalesforceConfig::class,
-                    'factory'         => function ($config) {
+                    'name'                  => 'salesforce_db',
+                    'label'                 => 'Salesforce',
+                    'description'           => 'Database service with SOAP and/or OAuth authentication support for Salesforce connections.',
+                    'group'                 => ServiceTypeGroups::DATABASE,
+                    'subscription_required' => LicenseLevel::SILVER,
+                    'config_handler'        => SalesforceConfig::class,
+                    'factory'               => function ($config) {
                         return new Salesforce($config);
                     },
                 ])
@@ -32,12 +35,13 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->resolving('df.service', function (ServiceManager $df) {
             $df->addType(
                 new ServiceType([
-                    'name'            => 'oauth_salesforce',
-                    'label'           => 'Salesforce OAuth',
-                    'description'     => 'OAuth service for supporting Salesforce authentication and API access.',
-                    'group'           => ServiceTypeGroups::OAUTH,
-                    'config_handler'  => OAuthConfig::class,
-                    'factory'         => function ($config) {
+                    'name'                  => 'oauth_salesforce',
+                    'label'                 => 'Salesforce OAuth',
+                    'description'           => 'OAuth service for supporting Salesforce authentication and API access.',
+                    'group'                 => ServiceTypeGroups::OAUTH,
+                    'subscription_required' => LicenseLevel::SILVER,
+                    'config_handler'        => OAuthConfig::class,
+                    'factory'               => function ($config) {
                         return new SalesforceOAuth($config);
                     },
                 ])
