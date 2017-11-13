@@ -7,7 +7,7 @@ use DreamFactory\Core\Salesforce\Resources\Table;
 use DreamFactory\Core\Testing\TestServiceRequest;
 use DreamFactory\Core\Enums\Verbs;
 
-class SalesforceTest extends \DreamFactory\Core\Testing\DbServiceTestCase
+class SalesforceTest extends \DreamFactory\Core\Database\Testing\DbServiceTestCase
 {
     /**
      * @const string

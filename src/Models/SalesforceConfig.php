@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Salesforce\Models;
 
-use DreamFactory\Core\Database\Components\SupportsUpsertAndCache;
+use DreamFactory\Core\Database\Components\SupportsExtraDbConfigs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use DreamFactory\Core\Models\Service;
@@ -18,7 +18,7 @@ use DreamFactory\Core\Models\Service;
  */
 class SalesforceConfig extends BaseServiceConfigModel
 {
-    use SupportsUpsertAndCache;
+    use SupportsExtraDbConfigs;
 
     protected $table = 'salesforce_db_config';
 
