@@ -173,10 +173,11 @@ class Salesforce extends BaseDbService
 
         $result = $this->getSObjects(true);
         foreach ($result as $name) {
-            $name = Schema::RESOURCE_NAME . '/' . $name;
+            $name = Schema::RESOURCE_NAME . '/' . $name . '/';
             $access = $this->getPermissions($name);
             if (!empty($access)) {
-                $resources[] = $name;
+		$resources[] = $name;
+		$resources[] = $name . '*';
             }
         }
 
@@ -188,10 +189,11 @@ class Salesforce extends BaseDbService
         }
 
         foreach ($result as $name) {
-            $name = Table::RESOURCE_NAME . '/' . $name;
+            $name = Table::RESOURCE_NAME . '/' . $name . '/';
             $access = $this->getPermissions($name);
             if (!empty($access)) {
-                $resources[] = $name;
+		$resources[] = $name;
+		$resources[] = $name . '*';
             }
         }
 
