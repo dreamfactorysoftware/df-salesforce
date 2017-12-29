@@ -2,10 +2,10 @@
 
 namespace DreamFactory\Core\Salesforce\Models;
 
-use DreamFactory\Core\Database\Components\SupportsUpsertAndCache;
+use DreamFactory\Core\Database\Components\SupportsExtraDbConfigs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
-use DreamFactory\Core\Models\Service;
+use ServiceManager;
 
 /**
  * SalesforceConfig
@@ -18,7 +18,7 @@ use DreamFactory\Core\Models\Service;
  */
 class SalesforceConfig extends BaseServiceConfigModel
 {
-    use SupportsUpsertAndCache;
+    use SupportsExtraDbConfigs;
 
     protected $table = 'salesforce_db_config';
 
@@ -88,12 +88,9 @@ class SalesforceConfig extends BaseServiceConfigModel
                 break;
             case 'oauth_service_id':
                 $serviceList = [['label' => 'None', 'name' => null]];
-                $services = Service::whereType('oauth_salesforce')->get();
+                $services = ServiceManager::getServiceListByType('oauth_salesforce', ['id', 'label']);
                 foreach ($services as $service) {
-                    $serviceList[] = [
-                        'label' => $service->name,
-                        'name'  => $service->id
-                    ];
+                    $serviceList[] = ['label' => array_get($service, 'label'), 'name' => array_get($service, 'id')];
                 }
 
                 $schema['type'] = 'picklist';

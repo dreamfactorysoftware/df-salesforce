@@ -1,6 +1,8 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce\Services;
 
+use DreamFactory\Core\Database\Services\BaseDbService;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
@@ -8,7 +10,6 @@ use DreamFactory\Core\OAuth\Models\OAuthTokenMap;
 use DreamFactory\Core\Salesforce\Database\Schema\Schema as DatabaseSchema;
 use DreamFactory\Core\Salesforce\Resources\Schema;
 use DreamFactory\Core\Salesforce\Resources\Table;
-use DreamFactory\Core\Database\Services\BaseDbService;
 use DreamFactory\Core\Salesforce\SoapClient\Client;
 use DreamFactory\Core\Salesforce\SoapClient\Soap\SoapClientFactory;
 use DreamFactory\Core\Utility\Session;
@@ -64,22 +65,6 @@ class Salesforce extends BaseDbService
      */
     protected $serverUrl;
 
-    /**
-     * @var array
-     */
-    protected static $resources = [
-        Schema::RESOURCE_NAME => [
-            'name'       => Schema::RESOURCE_NAME,
-            'class_name' => Schema::class,
-            'label'      => 'Schema',
-        ],
-        Table::RESOURCE_NAME  => [
-            'name'       => Table::RESOURCE_NAME,
-            'class_name' => Table::class,
-            'label'      => 'Table',
-        ],
-    ];
-
     //*************************************************************************
     //	Methods
     //*************************************************************************
@@ -130,6 +115,24 @@ class Salesforce extends BaseDbService
         $this->setConfigBasedCachePrefix($this->username . $this->wsdl . ':');
     }
 
+    public function getResourceHandlers()
+    {
+        $handlers = parent::getResourceHandlers();
+
+        $handlers[Schema::RESOURCE_NAME] = [
+            'name'       => Schema::RESOURCE_NAME,
+            'class_name' => Schema::class,
+            'label'      => 'Schema',
+        ];
+        $handlers[Table::RESOURCE_NAME] = [
+            'name'       => Table::RESOURCE_NAME,
+            'class_name' => Table::class,
+            'label'      => 'Table',
+        ];
+
+        return $handlers;
+    }
+
     /**
      * @param bool $list_only
      *
@@ -170,10 +173,11 @@ class Salesforce extends BaseDbService
 
         $result = $this->getSObjects(true);
         foreach ($result as $name) {
-            $name = Schema::RESOURCE_NAME . '/' . $name;
+            $name = Schema::RESOURCE_NAME . '/' . $name . '/';
             $access = $this->getPermissions($name);
             if (!empty($access)) {
-                $resources[] = $name;
+		$resources[] = $name;
+		$resources[] = $name . '*';
             }
         }
 
@@ -185,10 +189,11 @@ class Salesforce extends BaseDbService
         }
 
         foreach ($result as $name) {
-            $name = Table::RESOURCE_NAME . '/' . $name;
+            $name = Table::RESOURCE_NAME . '/' . $name . '/';
             $access = $this->getPermissions($name);
             if (!empty($access)) {
-                $resources[] = $name;
+		$resources[] = $name;
+		$resources[] = $name . '*';
             }
         }
 
