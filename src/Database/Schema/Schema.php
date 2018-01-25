@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Salesforce\Database\Schema;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
 
@@ -19,33 +20,42 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     /**
      * @inheritdoc
      */
-    protected function findColumns(TableSchema $table)
+    protected function loadTableColumns(TableSchema $table)
     {
         $result = $this->connection->callResource('sobjects', 'GET', $table->name . '/describe');
 
-        return array_get($result, 'fields');
-    }
+        if (!empty($columns = array_get($result, 'fields'))) {
+            foreach ($columns as $column) {
+                $column = array_change_key_case((array)$column, CASE_LOWER);
+                $c = new ColumnSchema(array_only($column, ['name', 'label', 'precision', 'scale']));
+                $c->quotedName = $this->quoteColumnName($c->name);
+                $c->autoIncrement = array_get($column, 'autoNumber', false);
+                $c->allowNull = array_get($column, 'nillable', false);
+                $c->refTable = array_get($column, 'referenceTo');
+                $c->isUnique = array_get($column, 'unique', false);
+                $c->size = array_get($column, 'length');
+                $c->dbType = array_get($column, 'type', 'string');
+                $this->extractType($c, $c->dbType);
+                $this->extractDefault($c, array_get($column, 'defaultvalue'));
 
-    protected function createColumn($column)
-    {
-        $c = new ColumnSchema(array_only($column, ['name', 'label', 'precision', 'scale']));
-        $c->quotedName = $this->quoteColumnName($c->name);
-        $c->autoIncrement = array_get($column, 'autoNumber', false);
-        $c->allowNull = array_get($column, 'nillable', false);
-        $c->refTable = array_get($column, 'referenceTo');
-        $c->isUnique = array_get($column, 'unique', false);
-        $c->size = array_get($column, 'length');
-        $c->dbType = array_get($column, 'type', 'string');
-        $this->extractType($c, $c->dbType);
-        $this->extractDefault($c, array_get($column, 'defaultvalue'));
-
-        return $c;
+                if ($c->isPrimaryKey) {
+                    if ($c->autoIncrement) {
+                        $table->sequenceName = array_get($column, 'sequence', $c->name);
+                        if ((DbSimpleTypes::TYPE_INTEGER === $c->type)) {
+                            $c->type = DbSimpleTypes::TYPE_ID;
+                        }
+                    }
+                    $table->addPrimaryKey($c->name);
+                }
+                $table->addColumn($c);
+            }
+        }
     }
 
     /**
      * @inheritdoc
      */
-    protected function findTableNames($schema = '')
+    protected function getTableNames($schema = '')
     {
         $tables = [];
         $names = $this->connection->getSObjects(true);
