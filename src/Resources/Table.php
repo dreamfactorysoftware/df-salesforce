@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce\Resources;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
@@ -49,6 +50,7 @@ class Table extends BaseNoSqlDbTableResource
     {
         $fields = array_get($extras, ApiOptions::FIELDS);
         $idField = array_get($extras, ApiOptions::ID_FIELD);
+        $countOnly = array_get_bool($extras, ApiOptions::COUNT_ONLY);
         $fields = $this->buildFieldList($table, $fields, $idField);
 
         $next = array_get($extras, 'next');
@@ -56,7 +58,11 @@ class Table extends BaseNoSqlDbTableResource
             $result = $this->parent->callResource('query', 'GET', $next);
         } else {
             // build query string
-            $query = 'SELECT ' . $fields . ' FROM ' . $table;
+            if ($countOnly) {
+                $query = 'SELECT COUNT() FROM ' . $table;
+            } else {
+                $query = 'SELECT ' . $fields . ' FROM ' . $table;
+            }
 
             if (!empty($filter)) {
                 $query .= ' WHERE ' . $filter;
@@ -78,6 +84,11 @@ class Table extends BaseNoSqlDbTableResource
             }
 
             $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
+        }
+
+        // SF will always include totalSize
+        if ($countOnly) {
+            return intval(array_get($result, 'totalSize'));
         }
 
         $data = array_get($result, 'records', []);
@@ -203,7 +214,7 @@ class Table extends BaseNoSqlDbTableResource
         $rollback = false,
         $continue = false,
         $single = false
-    ) {
+    ){
         $fields = array_get($extras, ApiOptions::FIELDS);
         $ssFilters = array_get($extras, 'ss_filters');
         $updates = array_get($extras, 'updates');
