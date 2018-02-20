@@ -51,38 +51,30 @@ class Table extends BaseNoSqlDbTableResource
         $fields = array_get($extras, ApiOptions::FIELDS);
         $idField = array_get($extras, ApiOptions::ID_FIELD);
         $countOnly = array_get_bool($extras, ApiOptions::COUNT_ONLY);
-        $fields = $this->buildFieldList($table, $fields, $idField);
+        $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
 
         $next = array_get($extras, 'next');
+
+        /**
+         * Build list of fields
+         */
+        $fields = $this->buildFieldList($table, $fields, $idField);
+
+
+        /**
+         * Get total counts if needed (with conditions)
+         */
+        if ($filter && $countOnly || $includeCount || $next) {
+            $query  = $this->buildConditionsStr($table, $fields, $filter, $extras, true);
+            $count = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
+        }
+
+        $query = $this->buildConditionsStr($table, $fields, $filter, $extras);
+
+
         if (!empty($next)) {
             $result = $this->parent->callResource('query', 'GET', $next);
         } else {
-            // build query string
-            if ($countOnly) {
-                $query = 'SELECT COUNT() FROM ' . $table;
-            } else {
-                $query = 'SELECT ' . $fields . ' FROM ' . $table;
-            }
-
-            if (!empty($filter)) {
-                $query .= ' WHERE ' . $filter;
-            }
-
-            $order = array_get($extras, ApiOptions::ORDER);
-            if (!empty($order)) {
-                $query .= ' ORDER BY ' . $order;
-            }
-
-            $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
-            if ($offset > 0) {
-                $query .= ' OFFSET ' . $offset;
-            }
-
-            $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
-            if ($limit > 0) {
-                $query .= ' LIMIT ' . $limit;
-            }
-
             $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
         }
 
@@ -93,9 +85,9 @@ class Table extends BaseNoSqlDbTableResource
 
         $data = array_get($result, 'records', []);
 
-        $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
         $moreToken = array_get($result, 'nextRecordsUrl');
-        if ($includeCount || $moreToken) {
+
+        if ($includeCount || $countOnly || $moreToken) {
             // count total records
             $data['meta']['count'] = intval(array_get($result, 'totalSize'));
             if ($moreToken) {
@@ -104,6 +96,36 @@ class Table extends BaseNoSqlDbTableResource
         }
 
         return $data;
+    }
+
+    protected function buildConditionsStr($table, $fields, $filter, $extras, $countOnly = false)
+    {
+        $order  = array_get($extras, ApiOptions::ORDER);
+        $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
+        $limit  = intval(array_get($extras, ApiOptions::LIMIT, 0));
+
+        // build query string either count or fields
+        if($countOnly === true){
+            $queryStr = 'SELECT COUNT() FROM ' . $table;
+        } else {
+            $queryStr = 'SELECT ' . $fields . ' FROM ' . $table;
+        }
+
+        if (!empty($filter)) {
+            $queryStr .= ' WHERE ' . $filter;
+
+            if (!empty($order)) {
+                $queryStr .= ' ORDER BY ' . $order;
+            }
+            if ($offset > 0) {
+                $queryStr .= ' OFFSET ' . $offset;
+            }
+            if ($limit > 0) {
+                $queryStr .= ' LIMIT ' . $limit;
+            }
+        }
+
+        return $queryStr;
     }
 
     protected function getFieldsInfo($table)
