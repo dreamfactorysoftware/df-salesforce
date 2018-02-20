@@ -366,6 +366,8 @@ class Salesforce extends BaseDbService
             if (401 == $status) {
                 // attempt the clear cache and rebuild session
                 $this->flush();
+                /* Need to clear out current object sessionId as well */
+                $this->sessionId = null;
                 // resend request
                 try {
                     $options = [
