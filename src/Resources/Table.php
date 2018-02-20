@@ -64,7 +64,7 @@ class Table extends BaseNoSqlDbTableResource
         /**
          * Get total counts if needed (with conditions)
          */
-        if ($filter && $countOnly || $includeCount || $next) {
+        if ($countOnly || $includeCount || $next) {
             // Build select with count() only
             $query = $this->buildConditionsStr($table, $fields, $filter, $extras, true);
             if ($qResult = $this->parent->callResource('query', 'GET', null, ['q' => $query])) {
@@ -118,17 +118,16 @@ class Table extends BaseNoSqlDbTableResource
 
         if (!empty($filter)) {
             $queryStr .= ' WHERE ' . $filter;
-
+        }
+        if (!$countOnly) {
             if (!empty($order)) {
                 $queryStr .= ' ORDER BY ' . $order;
             }
-            if (!$countOnly) {
-                if ($limit > 0) {
-                    $queryStr .= ' LIMIT ' . $limit;
-                }
-                if ($offset > 0) {
-                    $queryStr .= ' OFFSET ' . $offset;
-                }
+            if ($limit > 0) {
+                $queryStr .= ' LIMIT ' . $limit;
+            }
+            if ($offset > 0) {
+                $queryStr .= ' OFFSET ' . $offset;
             }
         }
 
