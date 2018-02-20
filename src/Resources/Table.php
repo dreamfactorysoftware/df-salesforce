@@ -54,23 +54,32 @@ class Table extends BaseNoSqlDbTableResource
         $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
 
         $next = array_get($extras, 'next');
+        $count = 0;
 
         /**
          * Build list of fields
          */
         $fields = $this->buildFieldList($table, $fields, $idField);
 
-
         /**
          * Get total counts if needed (with conditions)
          */
         if ($filter && $countOnly || $includeCount || $next) {
-            $query  = $this->buildConditionsStr($table, $fields, $filter, $extras, true);
-            $count = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
+            // Build select with count() only
+            $query = $this->buildConditionsStr($table, $fields, $filter, $extras, true);
+            if ($qResult = $this->parent->callResource('query', 'GET', null, ['q' => $query])) {
+                $count = intval($qResult['totalSize']);
+            }
         }
 
-        $query = $this->buildConditionsStr($table, $fields, $filter, $extras);
+        if ($countOnly) {
+            return $count;
+        }
 
+        /**
+         * Build normal select w/ fields
+         */
+        $query = $this->buildConditionsStr($table, $fields, $filter, $extras);
 
         if (!empty($next)) {
             $result = $this->parent->callResource('query', 'GET', $next);
@@ -79,17 +88,13 @@ class Table extends BaseNoSqlDbTableResource
         }
 
         // SF will always include totalSize
-        if ($countOnly) {
-            return intval(array_get($result, 'totalSize'));
-        }
-
         $data = array_get($result, 'records', []);
 
         $moreToken = array_get($result, 'nextRecordsUrl');
 
-        if ($includeCount || $countOnly || $moreToken) {
+        if ($includeCount || $moreToken) {
             // count total records
-            $data['meta']['count'] = intval(array_get($result, 'totalSize'));
+            $data['meta']['count'] = $count;
             if ($moreToken) {
                 $data['meta']['next'] = substr($moreToken, strrpos($moreToken, '/') + 1);
             }
@@ -100,12 +105,12 @@ class Table extends BaseNoSqlDbTableResource
 
     protected function buildConditionsStr($table, $fields, $filter, $extras, $countOnly = false)
     {
-        $order  = array_get($extras, ApiOptions::ORDER);
+        $order = array_get($extras, ApiOptions::ORDER);
         $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
-        $limit  = intval(array_get($extras, ApiOptions::LIMIT, 0));
+        $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
 
         // build query string either count or fields
-        if($countOnly === true){
+        if ($countOnly === true) {
             $queryStr = 'SELECT COUNT() FROM ' . $table;
         } else {
             $queryStr = 'SELECT ' . $fields . ' FROM ' . $table;
@@ -117,11 +122,13 @@ class Table extends BaseNoSqlDbTableResource
             if (!empty($order)) {
                 $queryStr .= ' ORDER BY ' . $order;
             }
-            if ($offset > 0) {
-                $queryStr .= ' OFFSET ' . $offset;
-            }
-            if ($limit > 0) {
-                $queryStr .= ' LIMIT ' . $limit;
+            if (!$countOnly) {
+                if ($limit > 0) {
+                    $queryStr .= ' LIMIT ' . $limit;
+                }
+                if ($offset > 0) {
+                    $queryStr .= ' OFFSET ' . $offset;
+                }
             }
         }
 
