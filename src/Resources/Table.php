@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Salesforce\Resources;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
@@ -49,50 +50,88 @@ class Table extends BaseNoSqlDbTableResource
     {
         $fields = array_get($extras, ApiOptions::FIELDS);
         $idField = array_get($extras, ApiOptions::ID_FIELD);
-        $fields = $this->buildFieldList($table, $fields, $idField);
+        $countOnly = array_get_bool($extras, ApiOptions::COUNT_ONLY);
+        $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
 
         $next = array_get($extras, 'next');
+        $count = 0;
+
+        /**
+         * Build list of fields
+         */
+        $fields = $this->buildFieldList($table, $fields, $idField);
+
+        /**
+         * Get total counts if needed (with conditions)
+         */
+        if ($countOnly || $includeCount || $next) {
+            // Build select with count() only
+            $query = $this->buildConditionsStr($table, $fields, $filter, $extras, true);
+            if ($qResult = $this->parent->callResource('query', 'GET', null, ['q' => $query])) {
+                $count = intval($qResult['totalSize']);
+            }
+        }
+
+        if ($countOnly) {
+            return $count;
+        }
+
+        /**
+         * Build normal select w/ fields
+         */
+        $query = $this->buildConditionsStr($table, $fields, $filter, $extras);
+
         if (!empty($next)) {
             $result = $this->parent->callResource('query', 'GET', $next);
         } else {
-            // build query string
-            $query = 'SELECT ' . $fields . ' FROM ' . $table;
-
-            if (!empty($filter)) {
-                $query .= ' WHERE ' . $filter;
-            }
-
-            $order = array_get($extras, ApiOptions::ORDER);
-            if (!empty($order)) {
-                $query .= ' ORDER BY ' . $order;
-            }
-
-            $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
-            if ($offset > 0) {
-                $query .= ' OFFSET ' . $offset;
-            }
-
-            $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
-            if ($limit > 0) {
-                $query .= ' LIMIT ' . $limit;
-            }
-
             $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
         }
 
+        // SF will always include totalSize
         $data = array_get($result, 'records', []);
 
-        $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
         $moreToken = array_get($result, 'nextRecordsUrl');
+
         if ($includeCount || $moreToken) {
             // count total records
-            $data['meta']['count'] = intval(array_get($result, 'totalSize'));
+            $data['meta']['count'] = $count;
             if ($moreToken) {
                 $data['meta']['next'] = substr($moreToken, strrpos($moreToken, '/') + 1);
             }
         }
 
         return $data;
+    }
+
+    protected function buildConditionsStr($table, $fields, $filter, $extras, $countOnly = false)
+    {
+        $order = array_get($extras, ApiOptions::ORDER);
+        $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
+        $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
+
+        // build query string either count or fields
+        if ($countOnly === true) {
+            $queryStr = 'SELECT COUNT() FROM ' . $table;
+        } else {
+            $queryStr = 'SELECT ' . $fields . ' FROM ' . $table;
+        }
+
+        if (!empty($filter)) {
+            $queryStr .= ' WHERE ' . $filter;
+        }
+        if (!$countOnly) {
+            if (!empty($order)) {
+                $queryStr .= ' ORDER BY ' . $order;
+            }
+            if ($limit > 0) {
+                $queryStr .= ' LIMIT ' . $limit;
+            }
+            if ($offset > 0) {
+                $queryStr .= ' OFFSET ' . $offset;
+            }
+        }
+
+        return $queryStr;
     }
 
     protected function getFieldsInfo($table)
@@ -203,7 +242,7 @@ class Table extends BaseNoSqlDbTableResource
         $rollback = false,
         $continue = false,
         $single = false
-    ) {
+    ){
         $fields = array_get($extras, ApiOptions::FIELDS);
         $ssFilters = array_get($extras, 'ss_filters');
         $updates = array_get($extras, 'updates');
