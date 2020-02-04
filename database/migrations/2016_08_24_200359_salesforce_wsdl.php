@@ -28,9 +28,14 @@ class SalesforceWsdl extends Migration
     public function down()
     {
         Schema::table('salesforce_db_config', function (Blueprint $t) {
-            $t->dropColumn('wsdl');
-            $t->dropColumn('version');
-            $t->dropColumn('oauth_service_id');
+            if (DB::getDriverName() !== 'sqlite') {
+                $t->dropForeign('salesforce_db_config_oauth_service_id_foreign');
+            }
+            $t->dropColumn([
+                'oauth_service_id',
+                'version',
+                'wsdl',
+            ]);
         });
     }
 }
