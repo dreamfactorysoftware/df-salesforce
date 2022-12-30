@@ -10,6 +10,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Database\Resources\BaseNoSqlDbTableResource;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
 use DreamFactory\Core\Enums\Verbs;
+use Arr;
 
 class Table extends BaseNoSqlDbTableResource
 {
@@ -48,12 +49,12 @@ class Table extends BaseNoSqlDbTableResource
      */
     public function retrieveRecordsByFilter($table, $filter = null, $params = [], $extras = [])
     {
-        $fields = array_get($extras, ApiOptions::FIELDS);
-        $idField = array_get($extras, ApiOptions::ID_FIELD);
+        $fields = Arr::get($extras, ApiOptions::FIELDS);
+        $idField = Arr::get($extras, ApiOptions::ID_FIELD);
         $countOnly = array_get_bool($extras, ApiOptions::COUNT_ONLY);
         $includeCount = array_get_bool($extras, ApiOptions::INCLUDE_COUNT);
 
-        $next = array_get($extras, 'next');
+        $next = Arr::get($extras, 'next');
         $count = 0;
 
         /**
@@ -88,9 +89,9 @@ class Table extends BaseNoSqlDbTableResource
         }
 
         // SF will always include totalSize
-        $data = array_get($result, 'records', []);
+        $data = Arr::get($result, 'records', []);
 
-        $moreToken = array_get($result, 'nextRecordsUrl');
+        $moreToken = Arr::get($result, 'nextRecordsUrl');
 
         if ($includeCount || $moreToken) {
             // count total records
@@ -105,9 +106,9 @@ class Table extends BaseNoSqlDbTableResource
 
     protected function buildConditionsStr($table, $fields, $filter, $extras, $countOnly = false)
     {
-        $order = array_get($extras, ApiOptions::ORDER);
-        $offset = intval(array_get($extras, ApiOptions::OFFSET, 0));
-        $limit = intval(array_get($extras, ApiOptions::LIMIT, 0));
+        $order = Arr::get($extras, ApiOptions::ORDER);
+        $offset = intval(Arr::get($extras, ApiOptions::OFFSET, 0));
+        $limit = intval(Arr::get($extras, ApiOptions::LIMIT, 0));
 
         // build query string either count or fields
         if ($countOnly === true) {
@@ -137,7 +138,7 @@ class Table extends BaseNoSqlDbTableResource
     protected function getFieldsInfo($table)
     {
         $result = $this->parent->callResource('sobjects', 'GET', $table . '/describe');
-        $result = array_get($result, ApiOptions::FIELDS);
+        $result = Arr::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
         }
@@ -154,7 +155,7 @@ class Table extends BaseNoSqlDbTableResource
     {
         $requested_fields = static::DEFAULT_ID_FIELD; // can only be this
         $requested_types = (array)$requested_types;
-        $type = array_get($requested_types, 0, 'string');
+        $type = Arr::get($requested_types, 0, 'string');
         $type = (empty($type)) ? 'string' : $type;
 
         return [new ColumnSchema(['name' => static::DEFAULT_ID_FIELD, 'type' => $type, 'required' => false])];
@@ -169,14 +170,14 @@ class Table extends BaseNoSqlDbTableResource
     protected function getAllFields($table, $as_array = false)
     {
         $result = $this->parent->callResource('sobjects', 'GET', $table . '/describe');
-        $result = array_get($result, ApiOptions::FIELDS);
+        $result = Arr::get($result, ApiOptions::FIELDS);
         if (empty($result)) {
             return [];
         }
 
         $fields = [];
         foreach ($result as $field) {
-            $fields[] = array_get($field, 'name');
+            $fields[] = Arr::get($field, 'name');
         }
 
         if ($as_array) {
@@ -243,10 +244,10 @@ class Table extends BaseNoSqlDbTableResource
         $continue = false,
         $single = false
     ){
-        $fields = array_get($extras, ApiOptions::FIELDS);
-        $ssFilters = array_get($extras, 'ss_filters');
-        $updates = array_get($extras, 'updates');
-        $idFields = array_get($extras, 'id_fields');
+        $fields = Arr::get($extras, ApiOptions::FIELDS);
+        $ssFilters = Arr::get($extras, 'ss_filters');
+        $updates = Arr::get($extras, 'updates');
+        $idFields = Arr::get($extras, 'id_fields');
         $needToIterate = ($single || $continue || (1 < count($this->tableIdsInfo)));
         $requireMore = array_get_bool($extras, 'require_more');
 
@@ -261,12 +262,12 @@ class Table extends BaseNoSqlDbTableResource
                 $native = json_encode($parsed);
                 $result = $this->parent->callResource('sobjects', 'POST', $this->transactionTable . '/', null, $native);
                 if (!array_get_bool($result, 'success')) {
-                    $msg = json_encode(array_get($result, 'errors'));
+                    $msg = json_encode(Arr::get($result, 'errors'));
                     throw new InternalServerErrorException("Record insert failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
 
-                $id = array_get($result, 'id');
+                $id = Arr::get($result, 'id');
 
                 // add via record, so batch processing can retrieve extras
                 return ($requireMore) ? parent::addToTransaction($id) : [$idFields => $id];
@@ -288,7 +289,7 @@ class Table extends BaseNoSqlDbTableResource
                 $result = $this->parent->callResource('sobjects', 'PATCH', $this->transactionTable . '/' . $id, null,
                     $native);
                 if ($result && !array_get_bool($result, 'success')) {
-                    $msg = array_get($result, 'errors');
+                    $msg = Arr::get($result, 'errors');
                     throw new InternalServerErrorException("Record update failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
@@ -299,7 +300,7 @@ class Table extends BaseNoSqlDbTableResource
             case Verbs::DELETE:
                 $result = $this->parent->callResource('sobjects', 'DELETE', $this->transactionTable . '/' . $id);
                 if ($result && !array_get_bool($result, 'success')) {
-                    $msg = array_get($result, 'errors');
+                    $msg = Arr::get($result, 'errors');
                     throw new InternalServerErrorException("Record delete failed for table '$this->transactionTable'.\n" .
                         $msg);
                 }
@@ -340,8 +341,8 @@ class Table extends BaseNoSqlDbTableResource
             return null;
         }
 
-        $fields = array_get($extras, ApiOptions::FIELDS);
-        $idFields = array_get($extras, 'id_fields');
+        $fields = Arr::get($extras, ApiOptions::FIELDS);
+        $idFields = Arr::get($extras, 'id_fields');
 
         $out = [];
         $action = $this->getAction();
@@ -364,7 +365,7 @@ class Table extends BaseNoSqlDbTableResource
 
                 $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
 
-                $out = array_get($result, 'records', []);
+                $out = Arr::get($result, 'records', []);
                 if (empty($out)) {
                     throw new NotFoundException('No records were found using the given identifiers.');
                 }
@@ -398,7 +399,7 @@ class Table extends BaseNoSqlDbTableResource
 
                     $result = $this->parent->callResource('query', 'GET', null, ['q' => $query]);
 
-                    $out = array_get($result, 'records', []);
+                    $out = Arr::get($result, 'records', []);
                     if (empty($out)) {
                         throw new NotFoundException('No records were found using the given identifiers.');
                     }

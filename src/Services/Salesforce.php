@@ -15,6 +15,7 @@ use DreamFactory\Core\Salesforce\SoapClient\Soap\SoapClientFactory;
 use DreamFactory\Core\Utility\Session;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\BadResponseException;
+use Arr;
 
 /**
  * SalesforceDb
@@ -81,13 +82,13 @@ class Salesforce extends BaseDbService
     {
         parent::__construct($settings);
 
-        $this->username = array_get($this->config, 'username');
-        $this->password = array_get($this->config, 'password');
-        $this->securityToken = strval(array_get($this->config, 'security_token')); // gets appended to password
-        $this->wsdl = array_get($this->config, 'wsdl');
+        $this->username = Arr::get($this->config, 'username');
+        $this->password = Arr::get($this->config, 'password');
+        $this->securityToken = strval(Arr::get($this->config, 'security_token')); // gets appended to password
+        $this->wsdl = Arr::get($this->config, 'wsdl');
 
         if (!empty($this->wsdl)) {
-            if (false === strpos($this->wsdl, DIRECTORY_SEPARATOR)) {
+            if (!str_contains($this->wsdl, DIRECTORY_SEPARATOR)) {
                 // no directories involved, store it where we want to store it
                 if (!empty($storage = storage_path('wsdl'))) {
                     $this->wsdl = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->wsdl;
@@ -97,11 +98,11 @@ class Salesforce extends BaseDbService
             }
         }
 
-        if (!empty($version = array_get($this->config, 'version'))) {
+        if (!empty($version = Arr::get($this->config, 'version'))) {
             $this->version = $version;
         }
 
-        $this->oauthServiceId = array_get($this->config, 'oauth_service_id');
+        $this->oauthServiceId = Arr::get($this->config, 'oauth_service_id');
 
         if (empty($this->oauthServiceId)) {
             if (empty($this->wsdl) || empty($this->username) || empty($this->password)) {
@@ -142,11 +143,11 @@ class Salesforce extends BaseDbService
     {
         $result = $this->callResource('sobjects');
 
-        $tables = (array)array_get($result, 'sobjects');
+        $tables = (array)Arr::get($result, 'sobjects');
         if ($list_only) {
             $out = [];
             foreach ($tables as $table) {
-                $out[] = array_get($table, 'name');
+                $out[] = Arr::get($table, 'name');
             }
 
             return $out;
@@ -235,12 +236,12 @@ class Salesforce extends BaseDbService
             throw new UnauthorizedException('Failed to build session with Salesforce with the given configuration.');
         }
 
-        $this->sessionId = array_get($result, 'access_token'); // don't cache this
-        $this->serverUrl = array_get($result, 'instance_url');
+        $this->sessionId = Arr::get($result, 'access_token'); // don't cache this
+        $this->serverUrl = Arr::get($result, 'instance_url');
         $this->addToCache('server_url', $this->serverUrl, true);
 
         if (!empty($result = $this->callGuzzle('GET'))) {
-            $this->version = array_get(array_last($result), 'version');
+            $this->version = Arr::get(Arr::last($result), 'version');
             $this->addToCache('server_version', $this->version, true);
         }
     }
@@ -385,9 +386,9 @@ class Salesforce extends BaseDbService
                     $response = $ex->getResponse();
                     $status = $response->getStatusCode();
                     $error = json_decode($response->getBody(), true);
-                    $error = array_get($error, 0, []);
-                    $message = array_get($error, 'message', $response->getReasonPhrase());
-                    $code = array_get($error, 'errorCode', 'ERROR');
+                    $error = Arr::get($error, 0, []);
+                    $message = Arr::get($error, 'message', $response->getReasonPhrase());
+                    $code = Arr::get($error, 'errorCode', 'ERROR');
                     throw new RestException($status, $code . ' ' . $message);
                 } catch (\Exception $ex) {
                     throw new InternalServerErrorException($ex->getMessage(), $ex->getCode() ?: null);
@@ -395,9 +396,9 @@ class Salesforce extends BaseDbService
             }
 
             $error = json_decode($response->getBody(), true);
-            $error = array_get($error, 0, []);
-            $message = array_get($error, 'message', $response->getReasonPhrase());
-            $code = array_get($error, 'errorCode', 'ERROR');
+            $error = Arr::get($error, 0, []);
+            $message = Arr::get($error, 'message', $response->getReasonPhrase());
+            $code = Arr::get($error, 'errorCode', 'ERROR');
             throw new RestException($status, $code . ' ' . $message);
         } catch (\Exception $ex) {
             throw new InternalServerErrorException($ex->getMessage(), $ex->getCode() ?: null);

@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Salesforce\Services;
 
 use DreamFactory\Core\OAuth\Services\BaseOAuthService;
 use DreamFactory\Core\Salesforce\Components\SalesforceProvider;
+use Arr;
 
 class SalesforceOAuth extends BaseOAuthService
 {
@@ -14,9 +15,9 @@ class SalesforceOAuth extends BaseOAuthService
     /** @inheritdoc */
     protected function setProvider($config)
     {
-        $clientId = array_get($config, 'client_id');
-        $clientSecret = array_get($config, 'client_secret');
-        $redirectUrl = array_get($config, 'redirect_url');
+        $clientId = Arr::get($config, 'client_id');
+        $clientSecret = Arr::get($config, 'client_secret');
+        $redirectUrl = Arr::get($config, 'redirect_url');
 
         $this->provider = new SalesforceProvider($clientId, $clientSecret, $redirectUrl);
     }

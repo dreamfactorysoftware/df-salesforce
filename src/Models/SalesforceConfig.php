@@ -6,6 +6,7 @@ use DreamFactory\Core\Database\Components\SupportsExtraDbConfigs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use ServiceManager;
+use Arr;
 
 /**
  * SalesforceConfig
@@ -44,10 +45,10 @@ class SalesforceConfig extends BaseServiceConfigModel
     public function validate($data, $throwException = true)
     {
         // if not using OAuth, need some creds for SOAP Authentication
-        if (empty(array_get($data, 'wsdl')) || empty(array_get($data, 'username')) ||
-            empty(array_get($data, 'password'))
+        if (empty(Arr::get($data, 'wsdl')) || empty(Arr::get($data, 'username')) ||
+            empty(Arr::get($data, 'password'))
         ) {
-            if (empty(array_get($data, 'oauth_service_id'))) {
+            if (empty(Arr::get($data, 'oauth_service_id'))) {
                 throw new BadRequestException('If not using an OAuth service, a Salesforce WSDL file, username, and password are required to access this service.');
             }
         }
@@ -90,7 +91,7 @@ class SalesforceConfig extends BaseServiceConfigModel
                 $serviceList = [['label' => 'None', 'name' => null]];
                 $services = ServiceManager::getServiceListByType('oauth_salesforce', ['id', 'label']);
                 foreach ($services as $service) {
-                    $serviceList[] = ['label' => array_get($service, 'label'), 'name' => array_get($service, 'id')];
+                    $serviceList[] = ['label' => Arr::get($service, 'label'), 'name' => Arr::get($service, 'id')];
                 }
 
                 $schema['type'] = 'picklist';
