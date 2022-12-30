@@ -6,6 +6,7 @@ use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Salesforce\Services\Salesforce;
+use Arr;
 
 /**
  * Schema is the class for retrieving metadata information from a MongoDB database (version 4.1.x and 5.x).
@@ -24,23 +25,23 @@ class Schema extends \DreamFactory\Core\Database\Components\Schema
     {
         $result = $this->connection->callResource('sobjects', 'GET', $table->name . '/describe');
 
-        if (!empty($columns = array_get($result, 'fields'))) {
+        if (!empty($columns = Arr::get($result, 'fields'))) {
             foreach ($columns as $column) {
                 $column = array_change_key_case((array)$column, CASE_LOWER);
-                $c = new ColumnSchema(array_only($column, ['name', 'label', 'precision', 'scale']));
+                $c = new ColumnSchema(Arr::only($column, ['name', 'label', 'precision', 'scale']));
                 $c->quotedName = $this->quoteColumnName($c->name);
-                $c->autoIncrement = array_get($column, 'autoNumber', false);
-                $c->allowNull = array_get($column, 'nillable', false);
-                $c->refTable = array_get($column, 'referenceTo');
-                $c->isUnique = array_get($column, 'unique', false);
-                $c->size = array_get($column, 'length');
-                $c->dbType = array_get($column, 'type', 'string');
+                $c->autoIncrement = Arr::get($column, 'autoNumber', false);
+                $c->allowNull = Arr::get($column, 'nillable', false);
+                $c->refTable = Arr::get($column, 'referenceTo');
+                $c->isUnique = Arr::get($column, 'unique', false);
+                $c->size = Arr::get($column, 'length');
+                $c->dbType = Arr::get($column, 'type', 'string');
                 $this->extractType($c, $c->dbType);
-                $this->extractDefault($c, array_get($column, 'defaultvalue'));
+                $this->extractDefault($c, Arr::get($column, 'defaultvalue'));
 
                 if ($c->isPrimaryKey) {
                     if ($c->autoIncrement) {
-                        $table->sequenceName = array_get($column, 'sequence', $c->name);
+                        $table->sequenceName = Arr::get($column, 'sequence', $c->name);
                         if ((DbSimpleTypes::TYPE_INTEGER === $c->type)) {
                             $c->type = DbSimpleTypes::TYPE_ID;
                         }
