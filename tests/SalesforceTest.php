@@ -27,7 +27,7 @@ class SalesforceTest extends \DreamFactory\Core\Database\Testing\DbServiceTestCa
      */
     protected $service = null;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -44,7 +44,7 @@ class SalesforceTest extends \DreamFactory\Core\Database\Testing\DbServiceTestCa
         );
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
     }
