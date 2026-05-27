@@ -110,6 +110,19 @@ class Table extends BaseNoSqlDbTableResource
         $offset = intval(Arr::get($extras, ApiOptions::OFFSET, 0));
         $limit = intval(Arr::get($extras, ApiOptions::LIMIT, 0));
 
+        // Validate identifiers before concatenation. The filter parameter
+        // is, by design, a SOQL WHERE fragment chosen by the caller, so it
+        // is not validated here (Salesforce's REST query endpoint only
+        // executes one SOQL statement per request). However the table and
+        // field-list identifiers must match the SF identifier shape; a
+        // payload with semicolons / SOQL keywords / quotes in a position
+        // that should be a bare identifier would break the assumption.
+        self::assertSafeSoqlIdentifier($table, 'table');
+        self::assertSafeSoqlFieldList($fields);
+        if (!empty($order)) {
+            self::assertSafeSoqlFieldList($order);
+        }
+
         // build query string either count or fields
         if ($countOnly === true) {
             $queryStr = 'SELECT COUNT() FROM ' . $table;
@@ -133,6 +146,54 @@ class Table extends BaseNoSqlDbTableResource
         }
 
         return $queryStr;
+    }
+
+    /**
+     * Validate a value that will be interpolated as a SOQL identifier
+     * (table or single field name).
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public static function assertSafeSoqlIdentifier(string $value, string $context = 'identifier'): void
+    {
+        // Salesforce object/field names: alphanumeric + underscore, may end
+        // in __c (custom) or contain dot for relationship traversal
+        // (e.g., Account.Owner.Name). Aggregate aliases use AS - allow
+        // optional " ASC"/" DESC" suffix when called from order context;
+        // those are handled by assertSafeSoqlFieldList.
+        if ($value === '' || preg_match('/^[A-Za-z][A-Za-z0-9_.]*$/', $value) !== 1) {
+            throw new \DreamFactory\Core\Exceptions\BadRequestException(
+                "Invalid SOQL {$context}: must match Salesforce identifier syntax."
+            );
+        }
+    }
+
+    /**
+     * Validate a comma-separated list of SOQL identifiers (with optional
+     * ASC/DESC qualifier when used in ORDER BY).
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public static function assertSafeSoqlFieldList(string $list): void
+    {
+        $parts = array_map('trim', explode(',', $list));
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            // Allow trailing ASC/DESC and "NULLS FIRST"/"NULLS LAST" tokens.
+            $tokens = preg_split('/\s+/', $part);
+            $identifier = array_shift($tokens) ?? '';
+            self::assertSafeSoqlIdentifier($identifier, 'field');
+            foreach ($tokens as $tok) {
+                $upper = strtoupper($tok);
+                if (!in_array($upper, ['ASC', 'DESC', 'NULLS', 'FIRST', 'LAST'], true)) {
+                    throw new \DreamFactory\Core\Exceptions\BadRequestException(
+                        "Invalid SOQL field-list token: {$tok}"
+                    );
+                }
+            }
+        }
     }
 
     protected function getFieldsInfo($table)
